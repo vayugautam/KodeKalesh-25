@@ -18,6 +18,7 @@ import {
   PlayArrow,
   Pause,
 } from '@mui/icons-material';
+import { RISK_COLORS, getRiskColor, getRiskLevel } from '../theme';
 
 const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
   const [timelineValue, setTimelineValue] = useState(0);
@@ -107,17 +108,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
 
   // Determine danger level and color
   const getDangerLevel = (risk) => {
-    if (risk < 30) return { level: 'Low', color: 'success' };
-    if (risk < 60) return { level: 'Moderate', color: 'warning' };
-    if (risk < 80) return { level: 'High', color: 'error' };
-    return { level: 'Critical', color: 'error' };
-  };
-
-  const getRiskColor = (risk) => {
-    if (risk < 30) return '#4caf50';
-    if (risk < 60) return '#ff9800';
-    if (risk < 80) return '#f44336';
-    return '#d32f2f';
+    return getRiskLevel(risk);
   };
 
   const currentDanger = getDangerLevel(predictionData.currentRisk);
@@ -252,12 +243,12 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
                 gap: 1,
                 p: 1.5,
                 borderRadius: 1,
-                backgroundColor: alert.critical ? '#ffebee' : '#f5f5f5',
-                border: `1px solid ${alert.critical ? '#ef5350' : '#e0e0e0'}`,
+                backgroundColor: alert.critical ? RISK_COLORS.danger.bg : '#f5f5f5',
+                border: `1px solid ${alert.critical ? RISK_COLORS.danger.main : '#e0e0e0'}`,
                 transition: 'all 0.2s',
                 '&:hover': {
                   transform: 'translateX(4px)',
-                  boxShadow: alert.critical ? '0 2px 8px rgba(239, 83, 80, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
+                  boxShadow: alert.critical ? `0 2px 8px ${RISK_COLORS.danger.light}40` : '0 2px 4px rgba(0,0,0,0.1)',
                 }
               }}
             >
@@ -268,7 +259,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
                 variant="body2" 
                 sx={{ 
                   flexGrow: 1,
-                  color: alert.critical ? '#c62828' : 'text.primary',
+                  color: alert.critical ? RISK_COLORS.danger.text : 'text.primary',
                   fontWeight: alert.critical ? 600 : 400,
                 }}
               >
@@ -349,7 +340,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
           </Typography>
           <Chip
             label={currentDanger.level}
-            color={currentDanger.color}
+            color={currentDanger.mui}
             size="small"
             icon={<Warning />}
             sx={{ fontWeight: 'bold' }}
@@ -357,8 +348,8 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-          <Typography variant="h2" fontWeight="bold" color={getRiskColor(predictionData.currentRisk)}>
-            {predictionData.currentRisk}
+          <Typography variant="h2" fontWeight="bold" color={currentDanger.color.main}>
+            {Math.round(predictionData.currentRisk)}
           </Typography>
           <Typography variant="h5" color="text.secondary">
             / 100
@@ -373,7 +364,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             borderRadius: 5,
             backgroundColor: '#e0e0e0',
             '& .MuiLinearProgress-bar': {
-              backgroundColor: getRiskColor(predictionData.currentRisk),
+              backgroundColor: currentDanger.color.main,
               borderRadius: 5,
             },
           }}
@@ -418,7 +409,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             sx={{
               mb: 1.5,
               border: `2px solid ${getRiskColor(pred.risk)}`,
-              backgroundColor: `${getRiskColor(pred.risk)}08`,
+              backgroundColor: `${getRiskColor(pred.risk)}15`,
             }}
           >
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -427,7 +418,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
                   +{pred.time}
                 </Typography>
                 <Chip
-                  label={`${pred.risk}%`}
+                  label={`${Math.round(pred.risk)}%`}
                   size="small"
                   sx={{
                     backgroundColor: getRiskColor(pred.risk),
@@ -466,7 +457,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             sx={{
               mb: 1.5,
               border: `2px solid ${getRiskColor(pred.risk)}`,
-              backgroundColor: `${getRiskColor(pred.risk)}08`,
+              backgroundColor: `${getRiskColor(pred.risk)}15`,
             }}
           >
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -475,7 +466,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
                   +{pred.time}
                 </Typography>
                 <Chip
-                  label={`${pred.risk}%`}
+                  label={`${Math.round(pred.risk)}%`}
                   size="small"
                   sx={{
                     backgroundColor: getRiskColor(pred.risk),
@@ -512,10 +503,10 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
           Danger Levels
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip label="Low (0-30)" size="small" sx={{ backgroundColor: '#4caf50', color: 'white' }} />
-          <Chip label="Moderate (30-60)" size="small" sx={{ backgroundColor: '#ff9800', color: 'white' }} />
-          <Chip label="High (60-80)" size="small" sx={{ backgroundColor: '#f44336', color: 'white' }} />
-          <Chip label="Critical (80-100)" size="small" sx={{ backgroundColor: '#d32f2f', color: 'white' }} />
+          <Chip label="Safe (0-30)" size="small" sx={{ backgroundColor: RISK_COLORS.safe.main, color: 'white' }} />
+          <Chip label="Medium (30-60)" size="small" sx={{ backgroundColor: RISK_COLORS.medium.dark, color: 'white' }} />
+          <Chip label="High (60-80)" size="small" sx={{ backgroundColor: RISK_COLORS.danger.main, color: 'white' }} />
+          <Chip label="Critical (80-100)" size="small" sx={{ backgroundColor: RISK_COLORS.critical.main, color: 'white' }} />
         </Box>
       </Paper>
     </Box>

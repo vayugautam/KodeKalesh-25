@@ -4,6 +4,7 @@ import MapView from '../components/MapView'
 import Sidebar from '../components/Sidebar'
 import RightSidebar from '../components/RightSidebar'
 import WeatherInfoPanel from '../components/WeatherInfoPanel'
+import { SidebarSkeleton, RightSidebarSkeleton } from '../components/LoadingSkeletons'
 import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
 import { useOpenMeteoWeather } from '../hooks/useOpenMeteoWeather'
@@ -15,6 +16,7 @@ function MapPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [timelineValue, setTimelineValue] = useState(0)
   const [currentPrediction, setCurrentPrediction] = useState(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   
   // Fetch locations from API
   const { data: locations, loading: locationsLoading, error: locationsError } = useLocations()
@@ -30,6 +32,13 @@ function MapPage() {
     loading: weatherLoading, 
     error: weatherError 
   } = useOpenMeteoWeather(selectedLat, selectedLon, !!selectedLocation)
+
+  // Handle initial load
+  useEffect(() => {
+    if (!locationsLoading && !riskLoading) {
+      setTimeout(() => setIsInitialLoad(false), 500)
+    }
+  }, [locationsLoading, riskLoading])
 
   // Handle errors
   useEffect(() => {
@@ -70,23 +79,29 @@ function MapPage() {
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: '#f5f5f5' }}>
+    <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden', bgcolor: '#f5f5f5' }}>
       <CssBaseline />
       
-      {/* Sidebar */}
-      <Sidebar 
-        onFetchPrediction={handleFetchPrediction}
-        selectedRegion={selectedRegion}
-        setSelectedRegion={setSelectedRegion}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-      />
+      {/* Left Sidebar */}
+      {isInitialLoad ? (
+        <Box sx={{ width: 400, borderRight: '1px solid #e0e0e0', bgcolor: 'white' }}>
+          <SidebarSkeleton />
+        </Box>
+      ) : (
+        <Sidebar 
+          onFetchPrediction={handleFetchPrediction}
+          selectedRegion={selectedRegion}
+          setSelectedRegion={setSelectedRegion}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+        />
+      )}
       
       {/* Main Map Container */}
       <Box sx={{ 
         flexGrow: 1, 
         position: 'relative',
-        height: '100vh',
+        height: '100%',
         bgcolor: 'white',
         display: 'flex',
         flexDirection: 'column'
@@ -109,11 +124,17 @@ function MapPage() {
       </Box>
 
       {/* Right Sidebar for Predictions */}
-      <RightSidebar 
-        selectedLocation={selectedLocation}
-        weatherData={weatherData}
-        onTimeChange={handleTimelineChange}
-      />
+      {isInitialLoad ? (
+        <Box sx={{ width: 380, borderLeft: '1px solid #e0e0e0', bgcolor: '#f5f5f5' }}>
+          <RightSidebarSkeleton />
+        </Box>
+      ) : (
+        <RightSidebar 
+          selectedLocation={selectedLocation}
+          weatherData={weatherData}
+          onTimeChange={handleTimelineChange}
+        />
+      )}
 
       {/* Error Snackbar */}
       <Snackbar 
