@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Box, CssBaseline, Snackbar, Alert } from '@mui/material'
 import MapView from '../components/MapView'
 import Sidebar from '../components/Sidebar'
+import RightSidebar from '../components/RightSidebar'
 import WeatherInfoPanel from '../components/WeatherInfoPanel'
 import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
@@ -68,12 +69,16 @@ function MapPage() {
             riskZones={riskZones}
             loading={locationsLoading || riskLoading}
             selectedRegion={selectedRegion}
+            onLocationSelect={setSelectedLocation}
           />
         </Box>
         
         {/* Weather Info Panel at the bottom */}
         <WeatherInfoPanel />
       </Box>
+
+      {/* Right Sidebar for Predictions */}
+      <RightSidebar selectedLocation={selectedLocation} />
 
       {/* Error Snackbar */}
       <Snackbar 

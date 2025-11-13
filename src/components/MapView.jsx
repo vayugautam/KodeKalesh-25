@@ -251,7 +251,7 @@ function HeatmapLayer({ points }) {
   return null
 }
 
-function MapView({ selectedLocation, locations, riskZones, loading, selectedRegion }) {
+function MapView({ selectedLocation, locations, riskZones, loading, selectedRegion, onLocationSelect }) {
   const defaultCenter = [22.5937, 78.9629] // Center of India
   const defaultZoom = 5
   const [showHeatmap, setShowHeatmap] = useState(true)
@@ -487,6 +487,13 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             key={fire.id} 
             position={fire.position}
             icon={fireIcon}
+            eventHandlers={{
+              click: () => {
+                if (onLocationSelect) {
+                  onLocationSelect(fire)
+                }
+              }
+            }}
           >
             <Popup maxWidth={300}>
               <Box sx={{ minWidth: 250 }}>
