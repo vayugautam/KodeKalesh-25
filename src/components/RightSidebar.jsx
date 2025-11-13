@@ -122,6 +122,87 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
 
   const currentDanger = getDangerLevel(predictionData.currentRisk);
 
+  // Generate alerts based on weather data
+  const generateAlerts = () => {
+    const alerts = [];
+    const weather = weatherData?.current;
+    
+    if (weather) {
+      // High wind speed alert (critical if > 30 km/h)
+      if (weather.windSpeed > 30) {
+        alerts.push({ 
+          icon: '⚠', 
+          text: 'High wind speed detected', 
+          critical: true 
+        });
+      } else if (weather.windSpeed > 20) {
+        alerts.push({ 
+          icon: '⚠', 
+          text: 'Moderate wind speed detected', 
+          critical: false 
+        });
+      }
+
+      // Low humidity alert (critical if < 20%)
+      if (weather.humidity < 20) {
+        alerts.push({ 
+          icon: '⚡', 
+          text: 'Low humidity increases risk', 
+          critical: true 
+        });
+      } else if (weather.humidity < 40) {
+        alerts.push({ 
+          icon: '⚡', 
+          text: 'Humidity below normal levels', 
+          critical: false 
+        });
+      }
+
+      // High temperature alert (critical if > 35°C)
+      if (weather.temperature > 35) {
+        alerts.push({ 
+          icon: '🌡️', 
+          text: 'Extreme temperature detected', 
+          critical: true 
+        });
+      } else if (weather.temperature > 30) {
+        alerts.push({ 
+          icon: '🌡️', 
+          text: 'High temperature conditions', 
+          critical: false 
+        });
+      }
+    }
+
+    // Fire cluster alert based on risk score
+    if (baseRisk > 80) {
+      alerts.push({ 
+        icon: '🔥', 
+        text: 'Fire cluster forming in Sector 4', 
+        critical: true 
+      });
+    } else if (baseRisk > 60) {
+      alerts.push({ 
+        icon: '🔥', 
+        text: 'Elevated fire risk in area', 
+        critical: false 
+      });
+    }
+
+    // Add dummy alert if no alerts
+    if (alerts.length === 0) {
+      alerts.push({ 
+        icon: '✓', 
+        text: 'No critical alerts at this time', 
+        critical: false 
+      });
+    }
+
+    return alerts;
+  };
+
+  const alerts = generateAlerts();
+
   return (
     <Box
       sx={{
@@ -153,6 +234,49 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
         <Typography variant="caption" sx={{ opacity: 0.9 }}>
           {selectedLocation?.name || 'Select a location on map'}
         </Typography>
+      </Paper>
+
+      {/* Alerts Section */}
+      <Paper elevation={2} sx={{ m: 2, mt: 2, p: 2 }}>
+        <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Warning sx={{ fontSize: 18, color: '#f57c00' }} />
+          Active Alerts
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {alerts.map((alert, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1.5,
+                borderRadius: 1,
+                backgroundColor: alert.critical ? '#ffebee' : '#f5f5f5',
+                border: `1px solid ${alert.critical ? '#ef5350' : '#e0e0e0'}`,
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateX(4px)',
+                  boxShadow: alert.critical ? '0 2px 8px rgba(239, 83, 80, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
+                }
+              }}
+            >
+              <Typography sx={{ fontSize: '1.2rem', minWidth: '24px' }}>
+                {alert.icon}
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  flexGrow: 1,
+                  color: alert.critical ? '#c62828' : 'text.primary',
+                  fontWeight: alert.critical ? 600 : 400,
+                }}
+              >
+                {alert.text}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </Paper>
 
       {/* Timeline Slider */}
