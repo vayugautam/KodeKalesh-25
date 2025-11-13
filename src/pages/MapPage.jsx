@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Box, CssBaseline, Snackbar, Alert } from '@mui/material'
+import { useState, useEffect, useRef } from 'react'
+import { Box, CssBaseline, Snackbar, Alert, Fab, Tooltip, CircularProgress } from '@mui/material'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import MapView from '../components/MapView'
 import Sidebar from '../components/Sidebar'
 import RightSidebar from '../components/RightSidebar'
@@ -8,6 +10,7 @@ import { SidebarSkeleton, RightSidebarSkeleton } from '../components/LoadingSkel
 import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
 import { useOpenMeteoWeather } from '../hooks/useOpenMeteoWeather'
+import { generatePDFReport, downloadScreenshot } from '../utils/pdfExport'
 
 function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -17,6 +20,8 @@ function MapPage() {
   const [timelineValue, setTimelineValue] = useState(0)
   const [currentPrediction, setCurrentPrediction] = useState(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isExporting, setIsExporting] = useState(false)
+  const mapContainerRef = useRef(null)
   
   // Fetch locations from API
   const { data: locations, loading: locationsLoading, error: locationsError } = useLocations()
@@ -78,6 +83,50 @@ function MapPage() {
     console.log('Timeline changed to:', time, 'hours', prediction)
   }
 
+  const handleExportPDF = async () => {
+    setIsExporting(true)
+    try {
+      const result = await generatePDFReport(mapContainerRef.current, {
+        selectedLocation,
+        weatherData,
+        riskScore: weatherData?.risk?.score || currentPrediction?.risk || 72,
+        timelineValue,
+        currentPrediction,
+      })
+      
+      if (result.success) {
+        setErrorMessage('')
+        // Show success message
+        const successMsg = `PDF report "${result.fileName}" downloaded successfully!`
+        console.log(successMsg)
+      } else {
+        setErrorMessage(`PDF export failed: ${result.error}`)
+      }
+    } catch (error) {
+      setErrorMessage(`Export error: ${error.message}`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleScreenshot = async () => {
+    setIsExporting(true)
+    try {
+      const filename = `map-screenshot-${Date.now()}.png`
+      const result = await downloadScreenshot(mapContainerRef.current, filename)
+      
+      if (result.success) {
+        console.log('Screenshot saved:', result.filename)
+      } else {
+        setErrorMessage(`Screenshot failed: ${result.error}`)
+      }
+    } catch (error) {
+      setErrorMessage(`Screenshot error: ${error.message}`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden', bgcolor: '#f5f5f5' }}>
       <CssBaseline />
@@ -98,14 +147,17 @@ function MapPage() {
       )}
       
       {/* Main Map Container */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        position: 'relative',
-        height: '100%',
-        bgcolor: 'white',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
+      <Box 
+        ref={mapContainerRef}
+        sx={{ 
+          flexGrow: 1, 
+          position: 'relative',
+          height: '100%',
+          bgcolor: 'white',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         <Box sx={{ flexGrow: 1, position: 'relative' }}>
           <MapView 
             selectedLocation={selectedLocation}
@@ -121,6 +173,55 @@ function MapPage() {
         
         {/* Weather Info Panel at the bottom */}
         <WeatherInfoPanel weatherData={weatherData} loading={weatherLoading} />
+
+        {/* Export Buttons */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 120,
+            right: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            zIndex: 1000,
+          }}
+        >
+          <Tooltip title="Export PDF Report" placement="left">
+            <Fab
+              color="primary"
+              size="medium"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              sx={{
+                boxShadow: 3,
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  transition: 'transform 0.2s',
+                }
+              }}
+            >
+              {isExporting ? <CircularProgress size={24} color="inherit" /> : <PictureAsPdfIcon />}
+            </Fab>
+          </Tooltip>
+
+          <Tooltip title="Screenshot Map" placement="left">
+            <Fab
+              color="secondary"
+              size="medium"
+              onClick={handleScreenshot}
+              disabled={isExporting}
+              sx={{
+                boxShadow: 3,
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  transition: 'transform 0.2s',
+                }
+              }}
+            >
+              {isExporting ? <CircularProgress size={24} color="inherit" /> : <CameraAltIcon />}
+            </Fab>
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* Right Sidebar for Predictions */}
