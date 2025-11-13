@@ -1,0 +1,128 @@
+{
+  "riskZones": {
+    "low": [
+      {
+        "id": "low1",
+        "name": "Kerala Coast",
+        "coordinates": [
+          [8.9, 76.5],
+          [10.5, 76.5],
+          [10.5, 77.5],
+          [8.9, 77.5]
+        ],
+        "riskLevel": "low",
+        "riskScore": 15,
+        "population": 125000,
+        "forestCoverage": 0.65
+      },
+      {
+        "id": "low2",
+        "name": "Eastern Ghats South",
+        "coordinates": [
+          [13.0, 79.0],
+          [14.5, 79.0],
+          [14.5, 80.5],
+          [13.0, 80.5]
+        ],
+        "riskLevel": "low",
+        "riskScore": 22,
+        "population": 95000,
+        "forestCoverage": 0.58
+      }
+    ],
+    "medium": [
+      {
+        "id": "med1",
+        "name": "Western Maharashtra",
+        "coordinates": [
+          [18.5, 73.5],
+          [20.0, 73.5],
+          [20.0, 75.0],
+          [18.5, 75.0]
+        ],
+        "riskLevel": "medium",
+        "riskScore": 52,
+        "population": 450000,
+        "forestCoverage": 0.42
+      },
+      {
+        "id": "med2",
+        "name": "North Karnataka",
+        "coordinates": [
+          [15.5, 75.0],
+          [17.0, 75.0],
+          [17.0, 76.5],
+          [15.5, 76.5]
+        ],
+        "riskLevel": "medium",
+        "riskScore": 48,
+        "population": 380000,
+        "forestCoverage": 0.48
+      },
+      {
+        "id": "med3",
+        "name": "Rajasthan Border",
+        "coordinates": [
+          [26.0, 73.0],
+          [28.0, 73.0],
+          [28.0, 75.0],
+          [26.0, 75.0]
+        ],
+        "riskLevel": "medium",
+        "riskScore": 45,
+        "population": 280000,
+        "forestCoverage": 0.35
+      }
+    ],
+    "high": [
+      {
+        "id": "high1",
+        "name": "Madhya Pradesh Central",
+        "coordinates": [
+          [22.5, 77.5],
+          [24.5, 77.5],
+          [24.5, 79.5],
+          [22.5, 79.5]
+        ],
+        "riskLevel": "high",
+        "riskScore": 75,
+        "population": 650000,
+        "forestCoverage": 0.72
+      },
+      {
+        "id": "high2",
+        "name": "Central India Corridor",
+        "coordinates": [
+          [21.5, 72.5],
+          [23.5, 72.5],
+          [23.5, 74.5],
+          [21.5, 74.5]
+        ],
+        "riskLevel": "high",
+        "riskScore": 82,
+        "population": 520000,
+        "forestCoverage": 0.68
+      },
+      {
+        "id": "high3",
+        "name": "Chhattisgarh Forest",
+        "coordinates": [
+          [20.0, 81.0],
+          [22.0, 81.0],
+          [22.0, 83.0],
+          [20.0, 83.0]
+        ],
+        "riskLevel": "high",
+        "riskScore": 78,
+        "population": 420000,
+        "forestCoverage": 0.75
+      }
+    ]
+  },
+  "metadata": {
+    "lastUpdated": "2025-11-13T13:00:00Z",
+    "totalZones": 8,
+    "coverageArea": "2.5M km²",
+    "dataSource": "Forest Department & Satellite Data"
+  }
+}

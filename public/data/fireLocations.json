@@ -1,0 +1,131 @@
+{
+  "fireLocations": [
+    {
+      "id": "f1",
+      "position": [23.5937, 78.9629],
+      "name": "Madhya Pradesh Fire Zone",
+      "region": "Central India",
+      "intensity": "high",
+      "riskScore": 85,
+      "temperature": 45,
+      "humidity": 18,
+      "windSpeed": 32,
+      "windDirection": 135,
+      "coordinates": {
+        "lat": 23.5937,
+        "lon": 78.9629
+      },
+      "detectedAt": "2025-11-13T10:30:00Z",
+      "status": "active",
+      "spreadRate": "fast",
+      "affectedArea": 2.5
+    },
+    {
+      "id": "f2",
+      "position": [26.8467, 80.9462],
+      "name": "Uttar Pradesh Hotspot",
+      "region": "Northern India",
+      "intensity": "medium",
+      "riskScore": 62,
+      "temperature": 38,
+      "humidity": 32,
+      "windSpeed": 18,
+      "windDirection": 90,
+      "coordinates": {
+        "lat": 26.8467,
+        "lon": 80.9462
+      },
+      "detectedAt": "2025-11-13T09:15:00Z",
+      "status": "active",
+      "spreadRate": "moderate",
+      "affectedArea": 1.8
+    },
+    {
+      "id": "f3",
+      "position": [19.7515, 75.7139],
+      "name": "Maharashtra Forest Fire",
+      "region": "Western India",
+      "intensity": "high",
+      "riskScore": 78,
+      "temperature": 42,
+      "humidity": 22,
+      "windSpeed": 25,
+      "windDirection": 180,
+      "coordinates": {
+        "lat": 19.7515,
+        "lon": 75.7139
+      },
+      "detectedAt": "2025-11-13T11:00:00Z",
+      "status": "active",
+      "spreadRate": "fast",
+      "affectedArea": 3.2
+    },
+    {
+      "id": "f4",
+      "position": [27.0238, 74.2179],
+      "name": "Rajasthan Fire Alert",
+      "region": "Western India",
+      "intensity": "low",
+      "riskScore": 42,
+      "temperature": 35,
+      "humidity": 45,
+      "windSpeed": 12,
+      "windDirection": 270,
+      "coordinates": {
+        "lat": 27.0238,
+        "lon": 74.2179
+      },
+      "detectedAt": "2025-11-13T08:45:00Z",
+      "status": "monitoring",
+      "spreadRate": "slow",
+      "affectedArea": 0.8
+    },
+    {
+      "id": "f5",
+      "position": [22.3072, 73.1812],
+      "name": "Central India Sector 4",
+      "region": "Central India",
+      "intensity": "high",
+      "riskScore": 88,
+      "temperature": 46,
+      "humidity": 15,
+      "windSpeed": 35,
+      "windDirection": 150,
+      "coordinates": {
+        "lat": 22.3072,
+        "lon": 73.1812
+      },
+      "detectedAt": "2025-11-13T12:00:00Z",
+      "status": "critical",
+      "spreadRate": "very fast",
+      "affectedArea": 4.5
+    },
+    {
+      "id": "f6",
+      "position": [19.8762, 75.3433],
+      "name": "Aurangabad Region",
+      "region": "Western India",
+      "intensity": "medium",
+      "riskScore": 58,
+      "temperature": 37,
+      "humidity": 38,
+      "windSpeed": 15,
+      "windDirection": 200,
+      "coordinates": {
+        "lat": 19.8762,
+        "lon": 75.3433
+      },
+      "detectedAt": "2025-11-13T07:30:00Z",
+      "status": "active",
+      "spreadRate": "moderate",
+      "affectedArea": 1.5
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-11-13T13:00:00Z",
+    "totalActive": 6,
+    "totalCritical": 1,
+    "dataSource": "Satellite & Ground Sensors",
+    "updateFrequency": "15 minutes"
+  }
+}

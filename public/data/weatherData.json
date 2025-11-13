@@ -1,0 +1,285 @@
+{
+  "weatherData": [
+    {
+      "locationId": "f1",
+      "location": "Madhya Pradesh Fire Zone",
+      "coordinates": {
+        "lat": 23.5937,
+        "lon": 78.9629
+      },
+      "current": {
+        "temperature": 45,
+        "feelsLike": 48,
+        "humidity": 18,
+        "pressure": 1008,
+        "windSpeed": 32,
+        "windDirection": 135,
+        "windGust": 42,
+        "visibility": 8000,
+        "uvIndex": 9,
+        "cloudCover": 15,
+        "weatherCode": 0,
+        "weatherDescription": "Clear sky - High fire risk",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 46,
+          "humidity": 16,
+          "windSpeed": 35,
+          "precipitationProbability": 0
+        },
+        "next6Hours": {
+          "temperatureMax": 47,
+          "temperatureMin": 42,
+          "humidity": 15,
+          "windSpeedMax": 38,
+          "precipitationProbability": 5
+        },
+        "next24Hours": {
+          "temperatureMax": 48,
+          "temperatureMin": 36,
+          "humidity": 14,
+          "windSpeedMax": 40,
+          "precipitationProbability": 10
+        }
+      }
+    },
+    {
+      "locationId": "f2",
+      "location": "Uttar Pradesh Hotspot",
+      "coordinates": {
+        "lat": 26.8467,
+        "lon": 80.9462
+      },
+      "current": {
+        "temperature": 38,
+        "feelsLike": 40,
+        "humidity": 32,
+        "pressure": 1012,
+        "windSpeed": 18,
+        "windDirection": 90,
+        "windGust": 25,
+        "visibility": 12000,
+        "uvIndex": 8,
+        "cloudCover": 20,
+        "weatherCode": 1,
+        "weatherDescription": "Mainly clear",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 39,
+          "humidity": 30,
+          "windSpeed": 20,
+          "precipitationProbability": 0
+        },
+        "next6Hours": {
+          "temperatureMax": 40,
+          "temperatureMin": 36,
+          "humidity": 28,
+          "windSpeedMax": 22,
+          "precipitationProbability": 15
+        },
+        "next24Hours": {
+          "temperatureMax": 41,
+          "temperatureMin": 30,
+          "humidity": 35,
+          "windSpeedMax": 25,
+          "precipitationProbability": 20
+        }
+      }
+    },
+    {
+      "locationId": "f3",
+      "location": "Maharashtra Forest Fire",
+      "coordinates": {
+        "lat": 19.7515,
+        "lon": 75.7139
+      },
+      "current": {
+        "temperature": 42,
+        "feelsLike": 45,
+        "humidity": 22,
+        "pressure": 1010,
+        "windSpeed": 25,
+        "windDirection": 180,
+        "windGust": 33,
+        "visibility": 10000,
+        "uvIndex": 9,
+        "cloudCover": 10,
+        "weatherCode": 0,
+        "weatherDescription": "Clear sky",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 43,
+          "humidity": 20,
+          "windSpeed": 27,
+          "precipitationProbability": 0
+        },
+        "next6Hours": {
+          "temperatureMax": 44,
+          "temperatureMin": 39,
+          "humidity": 19,
+          "windSpeedMax": 30,
+          "precipitationProbability": 5
+        },
+        "next24Hours": {
+          "temperatureMax": 45,
+          "temperatureMin": 33,
+          "humidity": 25,
+          "windSpeedMax": 32,
+          "precipitationProbability": 10
+        }
+      }
+    },
+    {
+      "locationId": "f4",
+      "location": "Rajasthan Fire Alert",
+      "coordinates": {
+        "lat": 27.0238,
+        "lon": 74.2179
+      },
+      "current": {
+        "temperature": 35,
+        "feelsLike": 36,
+        "humidity": 45,
+        "pressure": 1014,
+        "windSpeed": 12,
+        "windDirection": 270,
+        "windGust": 18,
+        "visibility": 15000,
+        "uvIndex": 7,
+        "cloudCover": 30,
+        "weatherCode": 2,
+        "weatherDescription": "Partly cloudy",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 36,
+          "humidity": 42,
+          "windSpeed": 14,
+          "precipitationProbability": 5
+        },
+        "next6Hours": {
+          "temperatureMax": 37,
+          "temperatureMin": 33,
+          "humidity": 40,
+          "windSpeedMax": 16,
+          "precipitationProbability": 20
+        },
+        "next24Hours": {
+          "temperatureMax": 38,
+          "temperatureMin": 28,
+          "humidity": 48,
+          "windSpeedMax": 18,
+          "precipitationProbability": 30
+        }
+      }
+    },
+    {
+      "locationId": "f5",
+      "location": "Central India Sector 4",
+      "coordinates": {
+        "lat": 22.3072,
+        "lon": 73.1812
+      },
+      "current": {
+        "temperature": 46,
+        "feelsLike": 50,
+        "humidity": 15,
+        "pressure": 1007,
+        "windSpeed": 35,
+        "windDirection": 150,
+        "windGust": 45,
+        "visibility": 7000,
+        "uvIndex": 10,
+        "cloudCover": 5,
+        "weatherCode": 0,
+        "weatherDescription": "Clear sky - Critical conditions",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 47,
+          "humidity": 14,
+          "windSpeed": 37,
+          "precipitationProbability": 0
+        },
+        "next6Hours": {
+          "temperatureMax": 48,
+          "temperatureMin": 43,
+          "humidity": 13,
+          "windSpeedMax": 40,
+          "precipitationProbability": 0
+        },
+        "next24Hours": {
+          "temperatureMax": 49,
+          "temperatureMin": 35,
+          "humidity": 12,
+          "windSpeedMax": 42,
+          "precipitationProbability": 5
+        }
+      }
+    },
+    {
+      "locationId": "f6",
+      "location": "Aurangabad Region",
+      "coordinates": {
+        "lat": 19.8762,
+        "lon": 75.3433
+      },
+      "current": {
+        "temperature": 37,
+        "feelsLike": 39,
+        "humidity": 38,
+        "pressure": 1011,
+        "windSpeed": 15,
+        "windDirection": 200,
+        "windGust": 22,
+        "visibility": 13000,
+        "uvIndex": 8,
+        "cloudCover": 25,
+        "weatherCode": 1,
+        "weatherDescription": "Mainly clear",
+        "timestamp": "2025-11-13T13:00:00Z"
+      },
+      "forecast": {
+        "nextHour": {
+          "temperature": 38,
+          "humidity": 36,
+          "windSpeed": 17,
+          "precipitationProbability": 0
+        },
+        "next6Hours": {
+          "temperatureMax": 39,
+          "temperatureMin": 35,
+          "humidity": 34,
+          "windSpeedMax": 20,
+          "precipitationProbability": 10
+        },
+        "next24Hours": {
+          "temperatureMax": 40,
+          "temperatureMin": 29,
+          "humidity": 40,
+          "windSpeedMax": 23,
+          "precipitationProbability": 25
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-11-13T13:00:00Z",
+    "dataSource": "Open-Meteo API + Ground Stations",
+    "updateFrequency": "10 minutes",
+    "units": {
+      "temperature": "Celsius",
+      "windSpeed": "km/h",
+      "pressure": "hPa",
+      "visibility": "meters"
+    }
+  }
+}
