@@ -1,21 +1,31 @@
-import { Paper, Box, Typography, Grid } from '@mui/material'
+import { Paper, Box, Typography, Grid, CircularProgress } from '@mui/material'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WaterDropIcon from '@mui/icons-material/WaterDrop'
 import NavigationIcon from '@mui/icons-material/Navigation'
 import TerrainIcon from '@mui/icons-material/Terrain'
 import ForestIcon from '@mui/icons-material/Forest'
 
-// Dummy data - will be replaced with API data
+// Dummy data - fallback when no real data
 const WEATHER_DATA = {
   temperature: 28,
   humidity: 65,
-  windDirection: 135, // degrees (0=North, 90=East, 180=South, 270=West)
+  windDirection: 135,
   windSpeed: 12,
-  slope: 15, // degrees
+  slope: 15,
   vegetationType: 'Mixed Forest'
 }
 
-function WeatherInfoPanel({ data = WEATHER_DATA }) {
+function WeatherInfoPanel({ weatherData, loading = false }) {
+  // Use real weather data if available, otherwise use dummy data
+  const displayData = weatherData?.current ? {
+    temperature: Math.round(weatherData.current.temperature),
+    humidity: weatherData.current.humidity,
+    windDirection: weatherData.current.windDirection,
+    windSpeed: Math.round(weatherData.current.windSpeed),
+    slope: WEATHER_DATA.slope, // Keep using dummy data for slope
+    vegetationType: WEATHER_DATA.vegetationType // Keep using dummy data for vegetation
+  } : WEATHER_DATA
+
   return (
     <Box
       sx={{
@@ -30,6 +40,14 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
         p: 2
       }}
     >
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+          <CircularProgress size={20} />
+          <Typography variant="caption" sx={{ ml: 1 }}>
+            Fetching real-time weather data...
+          </Typography>
+        </Box>
+      )}
       <Grid container spacing={2}>
         {/* Temperature Card */}
         <Grid item xs={12} sm={6} md={2.4}>
@@ -65,7 +83,7 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 Temperature
               </Typography>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-                {data.temperature}°C
+                {displayData.temperature}°C
               </Typography>
             </Box>
           </Paper>
@@ -105,7 +123,7 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 Humidity
               </Typography>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-                {data.humidity}%
+                {displayData.humidity}%
               </Typography>
             </Box>
           </Paper>
@@ -142,7 +160,7 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 sx={{ 
                   color: '#9c27b0', 
                   fontSize: 28,
-                  transform: `rotate(${data.windDirection}deg)`,
+                  transform: `rotate(${displayData.windDirection}deg)`,
                   transition: 'transform 0.3s'
                 }} 
               />
@@ -152,10 +170,10 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 Wind
               </Typography>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-                {data.windSpeed} km/h
+                {displayData.windSpeed} km/h
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                {getWindDirection(data.windDirection)}
+                {getWindDirection(displayData.windDirection)}
               </Typography>
             </Box>
           </Paper>
@@ -195,10 +213,10 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 Slope
               </Typography>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-                {data.slope}°
+                {displayData.slope}°
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                {getSlopeCategory(data.slope)}
+                {getSlopeCategory(displayData.slope)}
               </Typography>
             </Box>
           </Paper>
@@ -238,7 +256,7 @@ function WeatherInfoPanel({ data = WEATHER_DATA }) {
                 Vegetation
               </Typography>
               <Typography variant="body2" fontWeight="bold" sx={{ lineHeight: 1.2, fontSize: '0.9rem' }}>
-                {data.vegetationType}
+                {displayData.vegetationType}
               </Typography>
             </Box>
           </Paper>

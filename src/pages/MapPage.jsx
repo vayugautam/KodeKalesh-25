@@ -6,6 +6,7 @@ import RightSidebar from '../components/RightSidebar'
 import WeatherInfoPanel from '../components/WeatherInfoPanel'
 import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
+import { useOpenMeteoWeather } from '../hooks/useOpenMeteoWeather'
 
 function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -21,6 +22,15 @@ function MapPage() {
   // Fetch risk zones from API
   const { data: riskZones, loading: riskLoading, error: riskError, refetch: refetchRiskZones } = useRiskZones()
 
+  // Fetch real weather data from Open-Meteo when location is selected
+  const selectedLat = selectedLocation?.position?.[0] || null
+  const selectedLon = selectedLocation?.position?.[1] || null
+  const { 
+    data: weatherData, 
+    loading: weatherLoading, 
+    error: weatherError 
+  } = useOpenMeteoWeather(selectedLat, selectedLon, !!selectedLocation)
+
   // Handle errors
   useEffect(() => {
     if (locationsError) {
@@ -29,7 +39,18 @@ function MapPage() {
     if (riskError) {
       setErrorMessage(`Risk data: ${riskError}`)
     }
-  }, [locationsError, riskError])
+    if (weatherError) {
+      console.warn('Weather API Error:', weatherError)
+    }
+  }, [locationsError, riskError, weatherError])
+
+  // Log weather data when it updates
+  useEffect(() => {
+    if (weatherData) {
+      console.log('Real-time Weather Data:', weatherData)
+      console.log('Fire Risk Assessment:', weatherData.risk)
+    }
+  }, [weatherData])
 
   const handleCloseError = () => {
     setErrorMessage('')
@@ -84,12 +105,13 @@ function MapPage() {
         </Box>
         
         {/* Weather Info Panel at the bottom */}
-        <WeatherInfoPanel />
+        <WeatherInfoPanel weatherData={weatherData} loading={weatherLoading} />
       </Box>
 
       {/* Right Sidebar for Predictions */}
       <RightSidebar 
-        selectedLocation={selectedLocation} 
+        selectedLocation={selectedLocation}
+        weatherData={weatherData}
         onTimeChange={handleTimelineChange}
       />
 

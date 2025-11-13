@@ -19,9 +19,12 @@ import {
   Pause,
 } from '@mui/icons-material';
 
-const RightSidebar = ({ selectedLocation, onTimeChange }) => {
+const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
   const [timelineValue, setTimelineValue] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Use real weather risk if available
+  const baseRisk = weatherData?.risk?.score || 72;
 
   // Timeline marks
   const timelineMarks = [
@@ -34,15 +37,15 @@ const RightSidebar = ({ selectedLocation, onTimeChange }) => {
     { value: 24, label: '24h' },
   ];
 
-  // All prediction data points
+  // All prediction data points - dynamically calculated based on real weather
   const allPredictions = [
-    { time: 0, risk: 72, spread: '0 km', direction: '-', label: 'Current' },
-    { time: 2, risk: 65, spread: '1.2 km', direction: 'NE' },
-    { time: 4, risk: 70, spread: '1.8 km', direction: 'NE' },
-    { time: 6, risk: 75, spread: '2.5 km', direction: 'E' },
-    { time: 12, risk: 82, spread: '4.2 km', direction: 'E' },
-    { time: 18, risk: 88, spread: '6.1 km', direction: 'SE' },
-    { time: 24, risk: 92, spread: '8.5 km', direction: 'SE' },
+    { time: 0, risk: baseRisk, spread: '0 km', direction: '-', label: 'Current' },
+    { time: 2, risk: Math.min(baseRisk - 5, 95), spread: '1.2 km', direction: 'NE' },
+    { time: 4, risk: Math.min(baseRisk, 95), spread: '1.8 km', direction: 'NE' },
+    { time: 6, risk: Math.min(baseRisk + 3, 98), spread: '2.5 km', direction: 'E' },
+    { time: 12, risk: Math.min(baseRisk + 10, 98), spread: '4.2 km', direction: 'E' },
+    { time: 18, risk: Math.min(baseRisk + 16, 99), spread: '6.1 km', direction: 'SE' },
+    { time: 24, risk: Math.min(baseRisk + 20, 99), spread: '8.5 km', direction: 'SE' },
   ];
 
   // Get current prediction based on timeline value
