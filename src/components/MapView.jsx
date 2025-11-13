@@ -7,6 +7,7 @@ import WarningIcon from '@mui/icons-material/Warning'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WaterDropIcon from '@mui/icons-material/WaterDrop'
 import AirIcon from '@mui/icons-material/Air'
+import Schedule from '@mui/icons-material/Schedule'
 import { useState, useEffect } from 'react'
 import 'leaflet.heat'
 
@@ -216,23 +217,27 @@ const PLACEHOLDER_RISK_ZONES = {
 }
 
 // Heatmap Layer Component
-function HeatmapLayer({ points }) {
+function HeatmapLayer({ points, timelineValue = 0 }) {
   const map = useMap()
 
   useEffect(() => {
     if (!map || !points || points.length === 0) return
 
-    // Create heatmap data
+    // Calculate intensity multiplier based on timeline
+    const intensityMultiplier = 1 + (timelineValue / 6) * 0.15;
+    const radiusIncrease = (timelineValue / 6) * 8;
+
+    // Create heatmap data with timeline-adjusted intensity
     const heatData = points.map(point => [
       point.position[0],
       point.position[1],
-      point.riskScore || 0.5
+      Math.min((point.riskScore || 0.5) * intensityMultiplier, 1.0)
     ])
 
-    // Add heatmap layer
+    // Add heatmap layer with dynamic radius
     const heat = L.heatLayer(heatData, {
-      radius: 40,
-      blur: 50,
+      radius: 40 + radiusIncrease,
+      blur: 50 + (radiusIncrease * 0.5),
       maxZoom: 10,
       max: 1.0,
       gradient: {
@@ -246,12 +251,12 @@ function HeatmapLayer({ points }) {
     return () => {
       map.removeLayer(heat)
     }
-  }, [map, points])
+  }, [map, points, timelineValue])
 
   return null
 }
 
-function MapView({ selectedLocation, locations, riskZones, loading, selectedRegion, onLocationSelect }) {
+function MapView({ selectedLocation, locations, riskZones, loading, selectedRegion, onLocationSelect, timelineValue = 0, currentPrediction }) {
   const defaultCenter = [22.5937, 78.9629] // Center of India
   const defaultZoom = 5
   const [showHeatmap, setShowHeatmap] = useState(true)
@@ -260,6 +265,19 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
   const displayRiskZones = riskZones || PLACEHOLDER_RISK_ZONES
   const displayLocations = locations || []
   const displayFireLocations = FIRE_LOCATIONS // Fire markers with dummy data
+
+  // Generate heatmap data based on timeline - intensity increases over time
+  const getHeatmapIntensity = (baseIntensity, timeHours) => {
+    // Increase intensity by 10% every 6 hours
+    const multiplier = 1 + (timeHours / 6) * 0.1;
+    return Math.min(baseIntensity * multiplier, 1.0);
+  };
+
+  const getHeatmapRadius = (baseRadius, timeHours) => {
+    // Increase radius by 5 pixels every 6 hours
+    const increase = (timeHours / 6) * 5;
+    return baseRadius + increase;
+  };
 
   // Get zone color configuration to match the design
   const getZoneStyle = (riskLevel) => {
@@ -372,6 +390,51 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
         </Box>
       </Paper>
 
+      {/* Timeline Indicator */}
+      {timelineValue > 0 && (
+        <Paper
+          elevation={3}
+          sx={{
+            position: 'absolute',
+            top: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            px: 3,
+            py: 1.5,
+            backgroundColor: 'rgba(25, 118, 210, 0.95)',
+            color: 'white',
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+          }}
+        >
+          <Schedule sx={{ fontSize: 24 }} />
+          <Box>
+            <Typography variant="caption" sx={{ display: 'block', opacity: 0.9, lineHeight: 1 }}>
+              Prediction Timeline
+            </Typography>
+            <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+              +{timelineValue} Hours
+            </Typography>
+          </Box>
+          {currentPrediction && (
+            <>
+              <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.3)', mx: 0.5 }} />
+              <Box>
+                <Typography variant="caption" sx={{ display: 'block', opacity: 0.9, lineHeight: 1 }}>
+                  Risk Level
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+                  {currentPrediction.risk}%
+                </Typography>
+              </Box>
+            </>
+          )}
+        </Paper>
+      )}
+
       <MapContainer
         center={selectedLocation ? [selectedLocation.lat, selectedLocation.lon] : defaultCenter}
         zoom={selectedLocation ? 8 : defaultZoom}
@@ -410,8 +473,8 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
           </LayersControl.BaseLayer>
         </LayersControl>
 
-        {/* Heatmap Layer */}
-        {showHeatmap && <HeatmapLayer points={displayFireLocations} />}
+        {/* Heatmap Layer - Updates based on timeline */}
+        {showHeatmap && <HeatmapLayer points={displayFireLocations} timelineValue={timelineValue} />}
 
         {/* GREEN Risk Zones (Low Risk) */}
         {(displayRiskZones.green || []).map((zone) => (

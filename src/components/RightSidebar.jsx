@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -8,20 +8,85 @@ import {
   Divider,
   Card,
   CardContent,
+  Slider,
 } from '@mui/material';
 import {
   LocalFireDepartment,
   TrendingUp,
   Schedule,
   Warning,
+  PlayArrow,
+  Pause,
 } from '@mui/icons-material';
 
-const RightSidebar = ({ selectedLocation }) => {
+const RightSidebar = ({ selectedLocation, onTimeChange }) => {
+  const [timelineValue, setTimelineValue] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Timeline marks
+  const timelineMarks = [
+    { value: 0, label: '0h' },
+    { value: 2, label: '2h' },
+    { value: 4, label: '4h' },
+    { value: 6, label: '6h' },
+    { value: 12, label: '12h' },
+    { value: 18, label: '18h' },
+    { value: 24, label: '24h' },
+  ];
+
+  // All prediction data points
+  const allPredictions = [
+    { time: 0, risk: 72, spread: '0 km', direction: '-', label: 'Current' },
+    { time: 2, risk: 65, spread: '1.2 km', direction: 'NE' },
+    { time: 4, risk: 70, spread: '1.8 km', direction: 'NE' },
+    { time: 6, risk: 75, spread: '2.5 km', direction: 'E' },
+    { time: 12, risk: 82, spread: '4.2 km', direction: 'E' },
+    { time: 18, risk: 88, spread: '6.1 km', direction: 'SE' },
+    { time: 24, risk: 92, spread: '8.5 km', direction: 'SE' },
+  ];
+
+  // Get current prediction based on timeline value
+  const getCurrentPrediction = () => {
+    return allPredictions.find(p => p.time === timelineValue) || allPredictions[0];
+  };
+
+  const currentPrediction = getCurrentPrediction();
+
+  // Auto-play functionality
+  useEffect(() => {
+    let interval;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setTimelineValue(prev => {
+          const currentIndex = allPredictions.findIndex(p => p.time === prev);
+          const nextIndex = (currentIndex + 1) % allPredictions.length;
+          return allPredictions[nextIndex].time;
+        });
+      }, 1500); // Change every 1.5 seconds
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Notify parent component of time change
+  useEffect(() => {
+    if (onTimeChange) {
+      onTimeChange(timelineValue, currentPrediction);
+    }
+  }, [timelineValue]);
+
+  const handleSliderChange = (event, newValue) => {
+    setTimelineValue(newValue);
+  };
+
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
   // Dummy prediction data
   const predictionData = {
-    currentRisk: 72,
+    currentRisk: currentPrediction.risk,
     dangerLevel: 'High',
-    spreadRadius: '2.3 km',
+    spreadRadius: currentPrediction.spread,
     predictions: {
       sixHour: [
         { time: '2h', risk: 65, spread: '1.2 km', direction: 'NE' },
@@ -85,6 +150,68 @@ const RightSidebar = ({ selectedLocation }) => {
         <Typography variant="caption" sx={{ opacity: 0.9 }}>
           {selectedLocation?.name || 'Select a location on map'}
         </Typography>
+      </Paper>
+
+      {/* Timeline Slider */}
+      <Paper elevation={2} sx={{ m: 2, mt: 0, p: 2.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Timeline Control
+          </Typography>
+          <Chip
+            icon={isPlaying ? <Pause /> : <PlayArrow />}
+            label={isPlaying ? 'Playing' : 'Paused'}
+            onClick={togglePlayPause}
+            color={isPlaying ? 'success' : 'default'}
+            size="small"
+            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+          />
+        </Box>
+
+        <Box sx={{ px: 1, mb: 2 }}>
+          <Slider
+            value={timelineValue}
+            onChange={handleSliderChange}
+            step={null}
+            marks={timelineMarks}
+            min={0}
+            max={24}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value}h`}
+            sx={{
+              '& .MuiSlider-markLabel': {
+                fontSize: '0.7rem',
+              },
+              '& .MuiSlider-thumb': {
+                width: 20,
+                height: 20,
+              },
+              '& .MuiSlider-track': {
+                height: 6,
+              },
+              '& .MuiSlider-rail': {
+                height: 6,
+              },
+            }}
+          />
+        </Box>
+
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          p: 1.5,
+          backgroundColor: '#f0f7ff',
+          borderRadius: 1,
+          border: '1px solid #1976d2'
+        }}>
+          <Typography variant="caption" color="text.secondary">
+            Showing prediction for:
+          </Typography>
+          <Typography variant="body2" fontWeight="bold" color="primary">
+            +{timelineValue} hours
+          </Typography>
+        </Box>
       </Paper>
 
       {/* Current Risk Score */}

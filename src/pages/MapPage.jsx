@@ -12,6 +12,8 @@ function MapPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedRegion, setSelectedRegion] = useState('India')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [timelineValue, setTimelineValue] = useState(0)
+  const [currentPrediction, setCurrentPrediction] = useState(null)
   
   // Fetch locations from API
   const { data: locations, loading: locationsLoading, error: locationsError } = useLocations()
@@ -38,6 +40,12 @@ function MapPage() {
     // Refetch risk zones with new parameters
     refetchRiskZones()
     // You can add API call here to fetch prediction based on region and date
+  }
+
+  const handleTimelineChange = (time, prediction) => {
+    setTimelineValue(time)
+    setCurrentPrediction(prediction)
+    console.log('Timeline changed to:', time, 'hours', prediction)
   }
 
   return (
@@ -70,6 +78,8 @@ function MapPage() {
             loading={locationsLoading || riskLoading}
             selectedRegion={selectedRegion}
             onLocationSelect={setSelectedLocation}
+            timelineValue={timelineValue}
+            currentPrediction={currentPrediction}
           />
         </Box>
         
@@ -78,7 +88,10 @@ function MapPage() {
       </Box>
 
       {/* Right Sidebar for Predictions */}
-      <RightSidebar selectedLocation={selectedLocation} />
+      <RightSidebar 
+        selectedLocation={selectedLocation} 
+        onTimeChange={handleTimelineChange}
+      />
 
       {/* Error Snackbar */}
       <Snackbar 
