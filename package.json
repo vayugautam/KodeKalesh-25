@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "json-server --watch db.json --port 3001"
+    "server": "cd backend && node index.js",
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
