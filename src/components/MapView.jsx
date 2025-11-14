@@ -30,7 +30,7 @@ import DrawControl from './DrawControl'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import { fetchFIRMSHotspots, getBrightnessColor, formatHotspotDisplay } from '../utils/firmsApi'
 import PredictionSidebar from './PredictionSidebar'
-import { useToast } from '../hooks/useToast'
+import { useToast } from '../hooks/useToast.jsx'
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl
