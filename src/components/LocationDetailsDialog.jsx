@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { useState, useEffect } from 'react'
 import { 
   Dialog,
@@ -145,3 +146,14 @@ function LocationDetailsDialog({ location, open, onClose }) {
 }
 
 export default LocationDetailsDialog
+
+LocationDetailsDialog.propTypes = {
+  location: PropTypes.shape({
+    name: PropTypes.string,
+    region: PropTypes.string,
+    lat: PropTypes.number,
+    lon: PropTypes.number,
+  }),
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+}

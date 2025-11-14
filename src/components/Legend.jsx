@@ -5,8 +5,9 @@ import {
   Divider 
 } from '@mui/material'
 import SquareIcon from '@mui/icons-material/Square'
-import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import CircleIcon from '@mui/icons-material/Circle'
+import { useState, useEffect, useRef } from 'react'
+import '../styles/mapInteractions.css'
 
 // Updated legend items for risk zones and fire hotspots
 const LEGEND_ITEMS = [
@@ -20,6 +21,37 @@ const LEGEND_ITEMS = [
 ]
 
 function Legend() {
+  const [changedItems, setChangedItems] = useState(new Set())
+  const [activeItem, setActiveItem] = useState(null)
+  const prevColorsRef = useRef({})
+
+  // Track color changes for animation
+  useEffect(() => {
+    const newColors = {}
+    LEGEND_ITEMS.forEach(item => {
+      newColors[item.id] = item.color
+    })
+
+    const changed = new Set()
+    Object.keys(newColors).forEach(id => {
+      if (prevColorsRef.current[id] && prevColorsRef.current[id] !== newColors[id]) {
+        changed.add(Number(id))
+      }
+    })
+
+    if (changed.size > 0) {
+      setChangedItems(changed)
+      setTimeout(() => setChangedItems(new Set()), 800)
+    }
+
+    prevColorsRef.current = newColors
+  }, [LEGEND_ITEMS])
+
+  const handleItemClick = (itemId) => {
+    setActiveItem(itemId)
+    setTimeout(() => setActiveItem(null), 600)
+  }
+
   return (
     <Paper 
       elevation={3} 
@@ -39,14 +71,25 @@ function Legend() {
         {LEGEND_ITEMS.map((item) => (
           <Box 
             key={item.id} 
+            className={`legend-item ${
+              changedItems.has(item.id) ? 'color-changed' : ''
+            } ${
+              activeItem === item.id ? 'active ripple' : ''
+            }`}
+            onClick={() => handleItemClick(item.id)}
             sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 1.5 
+              gap: 1.5,
+              cursor: 'pointer',
+              px: 0.5,
+              py: 0.5,
+              borderRadius: 1
             }}
           >
             {item.icon === 'zone' && (
               <SquareIcon 
+                className={`legend-icon legend-zone-color ${changedItems.has(item.id) ? 'color-changed' : ''}`}
                 sx={{ 
                   fontSize: 18, 
                   color: item.color,
@@ -56,6 +99,7 @@ function Legend() {
             )}
             {item.icon === 'fire' && (
               <Box
+                className={`legend-icon legend-fire-color ${changedItems.has(item.id) ? 'color-changed' : ''}`}
                 sx={{
                   width: 18,
                   height: 18,
@@ -73,6 +117,7 @@ function Legend() {
             )}
             {item.icon === 'circle' && (
               <CircleIcon 
+                className={`legend-icon legend-circle-color ${changedItems.has(item.id) ? 'color-changed' : ''}`}
                 sx={{ 
                   fontSize: 14, 
                   color: item.color,

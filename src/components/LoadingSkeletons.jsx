@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Box, Paper, Skeleton, Grid } from '@mui/material'
 
 export const MapSkeleton = () => (
@@ -89,6 +90,14 @@ export const TableSkeleton = ({ rows = 5 }) => (
     ))}
   </Box>
 )
+
+CardSkeleton.propTypes = {
+  count: PropTypes.number,
+}
+
+TableSkeleton.propTypes = {
+  rows: PropTypes.number,
+}
 
 export default {
   MapSkeleton,

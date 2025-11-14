@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Card, CardContent, Typography, Box } from '@mui/material'
 
 /**
@@ -28,3 +29,9 @@ function CustomCard({ title, description, children }) {
 }
 
 export default CustomCard
+
+CustomCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  children: PropTypes.node,
+}

@@ -1,122 +1,129 @@
-import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
   Typography,
   LinearProgress,
   Chip,
-  Divider,
   Card,
   CardContent,
-  Slider,
 } from '@mui/material';
 import {
   LocalFireDepartment,
   TrendingUp,
   Schedule,
   Warning,
-  PlayArrow,
-  Pause,
 } from '@mui/icons-material';
 import { RISK_COLORS, getRiskColor, getRiskLevel } from '../theme';
+import TimelineControl from './TimelineControl';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
-const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
-  const [timelineValue, setTimelineValue] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+const RightSidebar = ({ selectedLocation, weatherData, prediction, lastRequest, onTimeChange }) => {
+  const [timelineIndex, setTimelineIndex] = useState(0);
 
-  // Use real weather risk if available
-  const baseRisk = weatherData?.risk?.score || 72;
-
-  // Timeline marks
-  const timelineMarks = [
-    { value: 0, label: '0h' },
-    { value: 2, label: '2h' },
-    { value: 4, label: '4h' },
-    { value: 6, label: '6h' },
-    { value: 12, label: '12h' },
-    { value: 18, label: '18h' },
-    { value: 24, label: '24h' },
-  ];
+  const baseWeatherRisk = weatherData?.risk?.score || 72;
+  const liveModelRisk = typeof prediction?.score === 'number' ? prediction.score : null;
+  const hasModelScore = typeof liveModelRisk === 'number';
+  const baseRisk = hasModelScore ? liveModelRisk : baseWeatherRisk;
+  const clampRisk = (value) => {
+    const numeric = Number.isFinite(value) ? value : 0;
+    return Math.max(0, Math.min(Math.round(numeric), 100));
+  };
+  const formatToken = (token) => (typeof token === 'string' ? token.toUpperCase() : token);
+  const formatNumber = (value, suffix = '') => (typeof value === 'number' ? `${value}${suffix}` : undefined);
 
   // All prediction data points - dynamically calculated based on real weather
-  const allPredictions = [
-    { time: 0, risk: baseRisk, spread: '0 km', direction: '-', label: 'Current' },
-    { time: 2, risk: Math.min(baseRisk - 5, 95), spread: '1.2 km', direction: 'NE' },
-    { time: 4, risk: Math.min(baseRisk, 95), spread: '1.8 km', direction: 'NE' },
-    { time: 6, risk: Math.min(baseRisk + 3, 98), spread: '2.5 km', direction: 'E' },
-    { time: 12, risk: Math.min(baseRisk + 10, 98), spread: '4.2 km', direction: 'E' },
-    { time: 18, risk: Math.min(baseRisk + 16, 99), spread: '6.1 km', direction: 'SE' },
-    { time: 24, risk: Math.min(baseRisk + 20, 99), spread: '8.5 km', direction: 'SE' },
-  ];
+  const allPredictions = useMemo(
+    () => [
+      { time: 0, risk: baseRisk, spread: '0 km', direction: '-', label: 'Current' },
+      { time: 2, risk: Math.min(baseRisk - 5, 95), spread: '1.2 km', direction: 'NE' },
+      { time: 4, risk: Math.min(baseRisk, 95), spread: '1.8 km', direction: 'NE' },
+      { time: 6, risk: Math.min(baseRisk + 3, 98), spread: '2.5 km', direction: 'E' },
+      { time: 12, risk: Math.min(baseRisk + 10, 98), spread: '4.2 km', direction: 'E' },
+      { time: 18, risk: Math.min(baseRisk + 16, 99), spread: '6.1 km', direction: 'SE' },
+      { time: 24, risk: Math.min(baseRisk + 20, 99), spread: '8.5 km', direction: 'SE' },
+    ],
+    [baseRisk]
+  );
 
-  // Get current prediction based on timeline value
-  const getCurrentPrediction = () => {
-    return allPredictions.find(p => p.time === timelineValue) || allPredictions[0];
-  };
+  const timelineStops = useMemo(
+    () =>
+      allPredictions.map(point => ({
+        label: `${point.time}h`,
+        value: point.time,
+        meta: point,
+      })),
+    [allPredictions]
+  );
 
-  const currentPrediction = getCurrentPrediction();
-
-  // Auto-play functionality
   useEffect(() => {
-    let interval;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setTimelineValue(prev => {
-          const currentIndex = allPredictions.findIndex(p => p.time === prev);
-          const nextIndex = (currentIndex + 1) % allPredictions.length;
-          return allPredictions[nextIndex].time;
-        });
-      }, 1500); // Change every 1.5 seconds
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+    setTimelineIndex(prev => Math.min(prev, timelineStops.length - 1));
+  }, [timelineStops.length]);
+
+  const currentPrediction = allPredictions[timelineIndex] || allPredictions[0];
+  const timelineValue = currentPrediction?.time ?? 0;
 
   // Notify parent component of time change
   useEffect(() => {
-    if (onTimeChange) {
-      onTimeChange(timelineValue, currentPrediction);
+    if (currentPrediction && onTimeChange) {
+      onTimeChange(currentPrediction.time, currentPrediction);
     }
-  }, [timelineValue]);
+  }, [currentPrediction, onTimeChange]);
 
-  const handleSliderChange = (event, newValue) => {
-    setTimelineValue(newValue);
+  const handleTimelineSeek = index => {
+    setTimelineIndex(index);
   };
 
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const handleTimelineTick = index => {
+    setTimelineIndex(index);
   };
 
   // Dummy prediction data
   const predictionData = {
-    currentRisk: currentPrediction.risk,
-    dangerLevel: 'High',
+    currentRisk: clampRisk(currentPrediction.risk),
+    dangerLevel: getRiskLevel(currentPrediction.risk).level,
     spreadRadius: currentPrediction.spread,
     predictions: {
       sixHour: [
-        { time: '2h', risk: 65, spread: '1.2 km', direction: 'NE' },
-        { time: '4h', risk: 70, spread: '1.8 km', direction: 'NE' },
-        { time: '6h', risk: 75, spread: '2.5 km', direction: 'E' },
+        { time: '2h', risk: clampRisk(currentPrediction.risk - 7), spread: '1.2 km', direction: 'NE' },
+        { time: '4h', risk: clampRisk(currentPrediction.risk - 2), spread: '1.8 km', direction: 'NE' },
+        { time: '6h', risk: clampRisk(currentPrediction.risk + 3), spread: '2.5 km', direction: 'E' },
       ],
       twentyFourHour: [
-        { time: '6h', risk: 75, spread: '2.5 km', direction: 'E' },
-        { time: '12h', risk: 82, spread: '4.2 km', direction: 'E' },
-        { time: '18h', risk: 88, spread: '6.1 km', direction: 'SE' },
-        { time: '24h', risk: 92, spread: '8.5 km', direction: 'SE' },
+        { time: '6h', risk: clampRisk(currentPrediction.risk + 3), spread: '2.5 km', direction: 'E' },
+        { time: '12h', risk: clampRisk(currentPrediction.risk + 10), spread: '4.2 km', direction: 'E' },
+        { time: '18h', risk: clampRisk(currentPrediction.risk + 16), spread: '6.1 km', direction: 'SE' },
+        { time: '24h', risk: clampRisk(currentPrediction.risk + 20), spread: '8.5 km', direction: 'SE' },
       ],
     },
   };
 
-  // Determine danger level and color
-  const getDangerLevel = (risk) => {
-    return getRiskLevel(risk);
-  };
-
-  const currentDanger = getDangerLevel(predictionData.currentRisk);
+  const timelineDanger = getRiskLevel(predictionData.currentRisk);
+  const modelDanger = hasModelScore ? getRiskLevel(liveModelRisk) : null;
+  const modelScoreDisplay = hasModelScore ? Math.round(liveModelRisk) : '—';
 
   // Generate alerts based on weather data
   const generateAlerts = () => {
     const alerts = [];
     const weather = weatherData?.current;
+    const combinedRisk = hasModelScore ? liveModelRisk : predictionData.currentRisk;
+
+    if (hasModelScore) {
+      if (liveModelRisk >= 85) {
+        alerts.push({
+          icon: '🔥',
+          text: 'Model predicts critical fire activity',
+          critical: true,
+        });
+      } else if (liveModelRisk >= 70) {
+        alerts.push({
+          icon: '🔥',
+          text: 'Model indicates elevated fire risk',
+          critical: false,
+        });
+      }
+    }
     
     if (weather) {
       // High wind speed alert (critical if > 30 km/h)
@@ -166,13 +173,13 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
     }
 
     // Fire cluster alert based on risk score
-    if (baseRisk > 80) {
+    if (combinedRisk > 80) {
       alerts.push({ 
         icon: '🔥', 
         text: 'Fire cluster forming in Sector 4', 
         critical: true 
       });
-    } else if (baseRisk > 60) {
+    } else if (combinedRisk > 60) {
       alerts.push({ 
         icon: '🔥', 
         text: 'Elevated fire risk in area', 
@@ -272,57 +279,25 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
 
       {/* Timeline Slider */}
       <Paper elevation={2} sx={{ m: 2, mt: 0, p: 2.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Timeline Control
-          </Typography>
-          <Chip
-            icon={isPlaying ? <Pause /> : <PlayArrow />}
-            label={isPlaying ? 'Playing' : 'Paused'}
-            onClick={togglePlayPause}
-            color={isPlaying ? 'success' : 'default'}
-            size="small"
-            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-          />
-        </Box>
+        <TimelineControl
+          timeline={timelineStops}
+          initialIndex={timelineIndex}
+          onSeek={handleTimelineSeek}
+          onTick={handleTimelineTick}
+        />
 
-        <Box sx={{ px: 1, mb: 2 }}>
-          <Slider
-            value={timelineValue}
-            onChange={handleSliderChange}
-            step={null}
-            marks={timelineMarks}
-            min={0}
-            max={24}
-            valueLabelDisplay="auto"
-            valueLabelFormat={(value) => `${value}h`}
-            sx={{
-              '& .MuiSlider-markLabel': {
-                fontSize: '0.7rem',
-              },
-              '& .MuiSlider-thumb': {
-                width: 20,
-                height: 20,
-              },
-              '& .MuiSlider-track': {
-                height: 6,
-              },
-              '& .MuiSlider-rail': {
-                height: 6,
-              },
-            }}
-          />
-        </Box>
-
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          p: 1.5,
-          backgroundColor: '#f0f7ff',
-          borderRadius: 1,
-          border: '1px solid #1976d2'
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 1.5,
+            mt: 2,
+            backgroundColor: '#f0f7ff',
+            borderRadius: 1,
+            border: '1px solid #1976d2',
+          }}
+        >
           <Typography variant="caption" color="text.secondary">
             Showing prediction for:
           </Typography>
@@ -339,8 +314,8 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             Current Risk Score
           </Typography>
           <Chip
-            label={currentDanger.level}
-            color={currentDanger.mui}
+            label={timelineDanger.level}
+            color={timelineDanger.mui}
             size="small"
             icon={<Warning />}
             sx={{ fontWeight: 'bold' }}
@@ -348,7 +323,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-          <Typography variant="h2" fontWeight="bold" color={currentDanger.color.main}>
+          <Typography variant="h2" fontWeight="bold" color={timelineDanger.color.main}>
             {Math.round(predictionData.currentRisk)}
           </Typography>
           <Typography variant="h5" color="text.secondary">
@@ -364,7 +339,7 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             borderRadius: 5,
             backgroundColor: '#e0e0e0',
             '& .MuiLinearProgress-bar': {
-              backgroundColor: currentDanger.color.main,
+              backgroundColor: timelineDanger.color.main,
               borderRadius: 5,
             },
           }}
@@ -391,6 +366,88 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
             </Box>
           </Box>
         </Box>
+      </Paper>
+
+      {/* Live Model Output */}
+      <Paper elevation={2} sx={{ m: 2, mt: 0, p: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <InfoOutlinedIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" fontWeight="bold">
+              Latest Model Output
+            </Typography>
+          </Box>
+          {prediction ? (
+            <Chip label="Live" color="success" size="small" />
+          ) : (
+            <Chip label="Awaiting run" color="default" size="small" />
+          )}
+        </Box>
+
+        {prediction ? (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+              <Typography variant="h3" fontWeight="bold" color={modelDanger?.color?.main || 'text.primary'}>
+                {modelScoreDisplay}
+              </Typography>
+              <Typography variant="h6" color="text.secondary">/ 100</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Chip
+                label={prediction.bucket || 'Unknown bucket'}
+                size="small"
+                sx={{ fontWeight: 'bold', backgroundColor: modelDanger?.color?.bg || '#eee', color: modelDanger?.color?.text || 'inherit' }}
+              />
+              {prediction.color && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: prediction.color, border: '1px solid rgba(0,0,0,0.1)' }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Model color
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {lastRequest && (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
+                {[
+                  {
+                    label: 'Grid Cell',
+                    value:
+                      Number.isFinite(lastRequest.X) && Number.isFinite(lastRequest.Y)
+                        ? `X${lastRequest.X} · Y${lastRequest.Y}`
+                        : undefined,
+                  },
+                  { label: 'Month', value: formatToken(lastRequest.month) },
+                  { label: 'Day', value: formatToken(lastRequest.day) },
+                  { label: 'Temp', value: formatNumber(lastRequest.temp, '°C') },
+                  { label: 'Humidity', value: formatNumber(lastRequest.RH, '%') },
+                  { label: 'Wind', value: formatNumber(lastRequest.wind, ' km/h') },
+                  { label: 'Rain', value: formatNumber(lastRequest.rain, ' mm') },
+                  { label: 'FFMC', value: formatNumber(lastRequest.FFMC) },
+                  { label: 'DMC', value: formatNumber(lastRequest.DMC) },
+                  { label: 'DC', value: formatNumber(lastRequest.DC) },
+                  { label: 'ISI', value: formatNumber(lastRequest.ISI) },
+                ].map(({ label, value }) => (
+                  value !== undefined && (
+                    <Box key={label} sx={{ p: 1, borderRadius: 1, backgroundColor: '#f7f9fc', border: '1px solid #e3e9f2' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {label}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        {value}
+                      </Typography>
+                    </Box>
+                  )
+                ))}
+              </Box>
+            )}
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            Run a prediction from the left sidebar to see live model output using the current weather snapshot.
+          </Typography>
+        )}
       </Paper>
 
       {/* 6-Hour Prediction */}
@@ -514,3 +571,43 @@ const RightSidebar = ({ selectedLocation, weatherData, onTimeChange }) => {
 };
 
 export default RightSidebar;
+
+RightSidebar.propTypes = {
+  selectedLocation: PropTypes.shape({
+    name: PropTypes.string,
+    region: PropTypes.string,
+    lat: PropTypes.number,
+    lon: PropTypes.number,
+  }),
+  weatherData: PropTypes.shape({
+    risk: PropTypes.shape({
+      score: PropTypes.number,
+    }),
+    current: PropTypes.shape({
+      temperature: PropTypes.number,
+      humidity: PropTypes.number,
+      windSpeed: PropTypes.number,
+      windDirection: PropTypes.string,
+    }),
+  }),
+  prediction: PropTypes.shape({
+    score: PropTypes.number,
+    bucket: PropTypes.string,
+    color: PropTypes.string,
+  }),
+  lastRequest: PropTypes.shape({
+    X: PropTypes.number,
+    Y: PropTypes.number,
+    month: PropTypes.string,
+    day: PropTypes.string,
+    temp: PropTypes.number,
+    RH: PropTypes.number,
+    wind: PropTypes.number,
+    rain: PropTypes.number,
+    FFMC: PropTypes.number,
+    DMC: PropTypes.number,
+    DC: PropTypes.number,
+    ISI: PropTypes.number,
+  }),
+  onTimeChange: PropTypes.func,
+};

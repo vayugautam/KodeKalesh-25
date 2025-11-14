@@ -3,6 +3,7 @@ import { Box, CssBaseline, Snackbar, Alert, Fab, Tooltip, CircularProgress } fro
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import MapView from '../components/MapView'
+import ErrorBoundary from '../components/ErrorBoundary'
 import Sidebar from '../components/Sidebar'
 import RightSidebar from '../components/RightSidebar'
 import WeatherInfoPanel from '../components/WeatherInfoPanel'
@@ -11,6 +12,7 @@ import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
 import { useOpenMeteoWeather } from '../hooks/useOpenMeteoWeather'
 import { generatePDFReport, downloadScreenshot } from '../utils/pdfExport'
+import { buildPredictionPayload, requestFirePrediction } from '../utils/firePredictionApi'
 
 function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null)
@@ -18,7 +20,10 @@ function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState('India')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [timelineValue, setTimelineValue] = useState(0)
-  const [currentPrediction, setCurrentPrediction] = useState(null)
+  const [timelinePrediction, setTimelinePrediction] = useState(null)
+  const [modelPrediction, setModelPrediction] = useState(null)
+  const [lastPredictionRequest, setLastPredictionRequest] = useState(null)
+  const predictionAbortRef = useRef(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const mapContainerRef = useRef(null)
@@ -27,7 +32,7 @@ function MapPage() {
   const { data: locations, loading: locationsLoading, error: locationsError } = useLocations()
   
   // Fetch risk zones from API
-  const { data: riskZones, loading: riskLoading, error: riskError, refetch: refetchRiskZones } = useRiskZones()
+  const { data: riskZones, loading: riskLoading, error: riskError } = useRiskZones()
 
   // Fetch real weather data from Open-Meteo when location is selected
   const selectedLat = selectedLocation?.position?.[0] || null
@@ -66,20 +71,59 @@ function MapPage() {
     }
   }, [weatherData])
 
+  useEffect(() => {
+    setTimelinePrediction(null)
+    setModelPrediction(null)
+    setLastPredictionRequest(null)
+  }, [selectedLocation])
+
+  useEffect(() => () => {
+    predictionAbortRef.current?.abort()
+  }, [])
+
   const handleCloseError = () => {
     setErrorMessage('')
   }
 
-  const handleFetchPrediction = () => {
-    console.log('Fetching prediction for:', selectedRegion, 'on', selectedDate)
-    // Refetch risk zones with new parameters
-    refetchRiskZones()
-    // You can add API call here to fetch prediction based on region and date
+  const handleFetchPrediction = async () => {
+    if (!selectedLocation || !weatherData?.current) {
+      setErrorMessage('Select a location with weather data before requesting predictions.')
+      return
+    }
+
+    if (predictionAbortRef.current) {
+      predictionAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    predictionAbortRef.current = controller
+
+    try {
+      const payload = buildPredictionPayload({
+        location: selectedLocation,
+        weather: {
+          temperature: weatherData.current.temperature,
+          humidity: weatherData.current.humidity,
+          windSpeed: weatherData.current.windSpeed,
+          rain: weatherData.daily?.precipitation_sum?.[0] ?? 0,
+        },
+        date: selectedDate,
+      })
+
+      setLastPredictionRequest(payload)
+      const prediction = await requestFirePrediction(payload, { signal: controller.signal })
+      setModelPrediction(prediction)
+      setErrorMessage('')
+    } catch (error) {
+      if (error.name === 'AbortError') return
+      console.error('Prediction API error:', error)
+      setErrorMessage(error.message || 'Failed to fetch prediction')
+    }
   }
 
   const handleTimelineChange = (time, prediction) => {
     setTimelineValue(time)
-    setCurrentPrediction(prediction)
+    setTimelinePrediction(prediction)
     console.log('Timeline changed to:', time, 'hours', prediction)
   }
 
@@ -89,9 +133,9 @@ function MapPage() {
       const result = await generatePDFReport(mapContainerRef.current, {
         selectedLocation,
         weatherData,
-        riskScore: weatherData?.risk?.score || currentPrediction?.risk || 72,
+        riskScore: weatherData?.risk?.score || timelinePrediction?.risk || 72,
         timelineValue,
-        currentPrediction,
+        currentPrediction: timelinePrediction,
       })
       
       if (result.success) {
@@ -159,16 +203,16 @@ function MapPage() {
         }}
       >
         <Box sx={{ flexGrow: 1, position: 'relative' }}>
-          <MapView 
-            selectedLocation={selectedLocation}
-            locations={locations}
-            riskZones={riskZones}
-            loading={locationsLoading || riskLoading}
-            selectedRegion={selectedRegion}
-            onLocationSelect={setSelectedLocation}
-            timelineValue={timelineValue}
-            currentPrediction={currentPrediction}
-          />
+          <ErrorBoundary errorMessage="Map component failed to load. This may be due to clustering initialization.">
+            <MapView 
+              selectedLocation={selectedLocation}
+              locations={locations}
+              riskZones={riskZones}
+              onLocationSelect={setSelectedLocation}
+              timelineValue={timelineValue}
+              currentPrediction={timelinePrediction}
+            />
+          </ErrorBoundary>
         </Box>
         
         {/* Weather Info Panel at the bottom */}
@@ -233,6 +277,8 @@ function MapPage() {
         <RightSidebar 
           selectedLocation={selectedLocation}
           weatherData={weatherData}
+          prediction={modelPrediction}
+          lastRequest={lastPredictionRequest}
           onTimeChange={handleTimelineChange}
         />
       )}
