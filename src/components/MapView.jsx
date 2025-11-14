@@ -994,6 +994,12 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
         
         // Check if API call was successful
         if (response.success && response.data) {
+          console.log('📊 Prediction Data:', {
+            score: response.data.score,
+            bucket: response.data.bucket,
+            color: response.data.color
+          })
+          
           setPredictionResult({
             score: response.data.score,
             bucket: response.data.bucket,

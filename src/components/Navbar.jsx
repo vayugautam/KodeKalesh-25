@@ -1,13 +1,32 @@
 import { AppBar, Toolbar, Typography, Button, Box, IconButton } from '@mui/material'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import HomeIcon from '@mui/icons-material/Home'
 import MapIcon from '@mui/icons-material/Map'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import LoginIcon from '@mui/icons-material/Login'
+import LogoutIcon from '@mui/icons-material/Logout'
+import PersonAddIcon from '@mui/icons-material/PersonAdd'
+import { useState, useEffect } from 'react'
 
 function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const authStatus = localStorage.getItem('isAuthenticated') === 'true'
+    setIsAuthenticated(authStatus)
+  }, [location])
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('userEmail')
+    localStorage.removeItem('userName')
+    setIsAuthenticated(false)
+    navigate('/login')
+  }
 
   const navItems = [
     { label: 'Home', path: '/home', icon: <HomeIcon /> },
@@ -100,9 +119,63 @@ function Navbar() {
 
         {/* User Info / Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'block' }, opacity: 0.9 }}>
-            Real-time Monitoring
-          </Typography>
+          {isAuthenticated ? (
+            <>
+              <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'block' }, opacity: 0.9, mr: 1 }}>
+                {localStorage.getItem('userName') || localStorage.getItem('userEmail')}
+              </Typography>
+              <Button
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  },
+                  px: 2,
+                  borderRadius: 1,
+                }}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                component={Link}
+                to="/login"
+                startIcon={<LoginIcon />}
+                sx={{
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  },
+                  px: 2,
+                  borderRadius: 1,
+                }}
+              >
+                Login
+              </Button>
+              <Button
+                component={Link}
+                to="/signup"
+                startIcon={<PersonAddIcon />}
+                sx={{
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.35)',
+                  },
+                  px: 2,
+                  borderRadius: 1,
+                }}
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
         </Box>
       </Toolbar>
     </AppBar>

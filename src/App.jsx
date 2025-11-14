@@ -12,6 +12,8 @@ import MapPage from './pages/MapPage'
 import Home from './pages/Home'
 import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
 import './App.css'
 import './styles/accessibility.css'
 import './styles/smoothScroll.css'
@@ -232,8 +234,11 @@ function App() {
             <Routes>
               <Route path="/" element={<MapPage searchInputRef={searchInputRef} />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/map" element={<MapPage searchInputRef={searchInputRef} />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
             </Routes>
           </main>
 

@@ -74,7 +74,11 @@ const PredictionSidebar = ({
       low: { color: '#66bb6a', label: 'LOW', icon: '🟢', bgColor: '#e8f5e9' },
       error: { color: '#757575', label: 'ERROR', icon: '⚠️', bgColor: '#f5f5f5' }
     }
-    return riskLevels[bucket] || riskLevels.error
+    
+    // Normalize bucket to lowercase and handle null/undefined
+    const normalizedBucket = bucket ? String(bucket).toLowerCase().trim() : 'error'
+    
+    return riskLevels[normalizedBucket] || riskLevels.error
   }
 
   const riskDetails = predictionResult ? getRiskDetails(predictionResult.bucket) : null
