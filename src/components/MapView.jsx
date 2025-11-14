@@ -551,113 +551,118 @@ function AnimatedHeatmapLayer({ points, timelineValue, onTransitionChange }) {
   useEffect(() => {
     if (!map || !currentData || currentData.length === 0) return
 
-    // Calculate intensity multiplier based on timeline
-    const intensityMultiplier = 1 + (timelineValue / 6) * 0.15
-    const radiusIncrease = (timelineValue / 6) * 8
+    try {
+      // Calculate intensity multiplier based on timeline
+      const intensityMultiplier = 1 + (timelineValue / 6) * 0.15
+      const radiusIncrease = (timelineValue / 6) * 8
 
-    // Create heatmap data with interpolated intensities and opacity
-    const heatData = currentData.map(point => {
-      // Use interpolated intensity if available, otherwise calculate
-      const intensity = point._interpolatedIntensity !== undefined
-        ? point._interpolatedIntensity
-        : Math.min((point.riskScore || 0.5) * intensityMultiplier, 1.0)
-      
-      return [
-        point.position[0],
-        point.position[1],
-        Math.min(intensity, 1.0)
-      ]
-    })
-
-    // During transition, crossfade between old and new layers
-    if (isTransitioning && progress < 1) {
-      // Keep old layer visible during transition
-      if (heatLayerRef.current && !oldHeatLayerRef.current) {
-        oldHeatLayerRef.current = heatLayerRef.current
-      }
-
-      // Create new layer with opacity based on progress
-      const newHeat = L.heatLayer(heatData, {
-        radius: 40 + radiusIncrease,
-        blur: 50 + (radiusIncrease * 0.5),
-        maxZoom: 10,
-        max: 1.0,
-        gradient: {
-          0.0: '#4caf50',
-          0.5: '#ffd54f',
-          0.7: '#ff9800',
-          1.0: '#e57373'
-        },
-        minOpacity: 0.4 * progress, // Fade in
-        maxOpacity: 0.8 * progress
+      // Create heatmap data with interpolated intensities and opacity
+      const heatData = currentData.map(point => {
+        // Use interpolated intensity if available, otherwise calculate
+        const intensity = point._interpolatedIntensity !== undefined
+          ? point._interpolatedIntensity
+          : Math.min((point.riskScore || 0.5) * intensityMultiplier, 1.0)
+        
+        return [
+          point.position[0],
+          point.position[1],
+          Math.min(intensity, 1.0)
+        ]
       })
 
-      // Add new layer
-      newHeat.addTo(map)
-      heatLayerRef.current = newHeat
+      // During transition, crossfade between old and new layers
+      if (isTransitioning && progress < 1) {
+        // Keep old layer visible during transition
+        if (heatLayerRef.current && !oldHeatLayerRef.current) {
+          oldHeatLayerRef.current = heatLayerRef.current
+        }
 
-      // Fade out old layer
-      if (oldHeatLayerRef.current) {
-        const oldOpacity = 0.8 * (1 - progress)
-        oldHeatLayerRef.current.setOptions({
-          minOpacity: 0.4 * (1 - progress),
-          maxOpacity: oldOpacity
+        // Create new layer with opacity based on progress
+        const newHeat = L.heatLayer(heatData, {
+          radius: 40 + radiusIncrease,
+          blur: 50 + (radiusIncrease * 0.5),
+          maxZoom: 10,
+          max: 1.0,
+          gradient: {
+            0.0: '#4caf50',
+            0.5: '#ffd54f',
+            0.7: '#ff9800',
+            1.0: '#e57373'
+          },
+          minOpacity: 0.4 * progress, // Fade in
+          maxOpacity: 0.8 * progress
         })
 
-        // Remove old layer when fully faded
-        if (progress >= 0.98) {
+        // Add new layer safely
+        if (map && newHeat) {
+          newHeat.addTo(map)
+          heatLayerRef.current = newHeat
+        }
+
+        // Fade out old layer
+        if (oldHeatLayerRef.current && oldHeatLayerRef.current.setOptions) {
+          const oldOpacity = 0.8 * (1 - progress)
+          oldHeatLayerRef.current.setOptions({
+            minOpacity: 0.4 * (1 - progress),
+            maxOpacity: oldOpacity
+          })
+
+          // Remove old layer when fully faded
+          if (progress >= 0.98 && map.hasLayer(oldHeatLayerRef.current)) {
+            map.removeLayer(oldHeatLayerRef.current)
+            oldHeatLayerRef.current = null
+          }
+        }
+      } else {
+        // No transition - normal update
+        if (heatLayerRef.current && map.hasLayer(heatLayerRef.current)) {
+          map.removeLayer(heatLayerRef.current)
+        }
+        if (oldHeatLayerRef.current && map.hasLayer(oldHeatLayerRef.current)) {
           map.removeLayer(oldHeatLayerRef.current)
           oldHeatLayerRef.current = null
         }
-      }
-    } else {
-      // No transition - normal update
-      if (heatLayerRef.current) {
-        map.removeLayer(heatLayerRef.current)
-      }
-      if (oldHeatLayerRef.current) {
-        map.removeLayer(oldHeatLayerRef.current)
-        oldHeatLayerRef.current = null
+
+        const heat = L.heatLayer(heatData, {
+          radius: 40 + radiusIncrease,
+          blur: 50 + (radiusIncrease * 0.5),
+          maxZoom: 10,
+          max: 1.0,
+          gradient: {
+            0.0: '#4caf50',
+            0.5: '#ffd54f',
+            0.7: '#ff9800',
+            1.0: '#e57373'
+          },
+          minOpacity: 0.4,
+          maxOpacity: 0.8
+        })
+
+        if (map && heat) {
+          heat.addTo(map)
+          heatLayerRef.current = heat
+        }
       }
 
-      const heat = L.heatLayer(heatData, {
-        radius: 40 + radiusIncrease,
-        blur: 50 + (radiusIncrease * 0.5),
-        maxZoom: 10,
-        max: 1.0,
-        gradient: {
-          0.0: '#4caf50',
-          0.5: '#ffd54f',
-          0.7: '#ff9800',
-          1.0: '#e57373'
-        },
-        minOpacity: 0.4,
-        maxOpacity: 0.8
-      })
-
-      heat.addTo(map)
-      heatLayerRef.current = heat
-    }
-
-    // Update previous points reference
-    if (!isTransitioning) {
-      previousPointsRef.current = points
+      // Update previous points reference
+      if (!isTransitioning) {
+        previousPointsRef.current = points
+      }
+    } catch (error) {
+      console.error('Error updating heatmap layer:', error)
     }
 
     return () => {
-      if (heatLayerRef.current) {
-        try {
+      try {
+        if (heatLayerRef.current && map && map.hasLayer(heatLayerRef.current)) {
           map.removeLayer(heatLayerRef.current)
-        } catch {
-          // Layer already removed
         }
-      }
-      if (oldHeatLayerRef.current) {
-        try {
+        if (oldHeatLayerRef.current && map && map.hasLayer(oldHeatLayerRef.current)) {
           map.removeLayer(oldHeatLayerRef.current)
-        } catch {
-          // Layer already removed
         }
+      } catch (error) {
+        // Layer already removed or map unmounted
+        console.debug('Error removing heatmap layer:', error)
       }
     }
   }, [map, currentData, timelineValue, isTransitioning, progress, points])
@@ -986,9 +991,32 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
       try {
         const response = await callFirePredictionAPI(apiPayload)
         console.log('✅ Step 4 Complete: API Response:', response)
-        setPredictionResult(response)
-        setLastUpdated(Date.now())
-        showSuccess('Fire risk prediction updated successfully!')
+        
+        // Check if API call was successful
+        if (response.success && response.data) {
+          setPredictionResult({
+            score: response.data.score,
+            bucket: response.data.bucket,
+            color: response.data.color,
+            features_used: response.data.features_used
+          })
+          setLastUpdated(Date.now())
+          showSuccess('Fire risk prediction updated successfully!')
+        } else {
+          // API returned an error
+          const errorMsg = response.error?.message || 'Unknown error'
+          console.error('❌ API Error:', response.error)
+          showError('Prediction failed: ' + errorMsg)
+          
+          // Set fallback prediction with grey color
+          setPredictionResult({
+            score: null,
+            bucket: 'error',
+            color: '#9e9e9e',
+            features_used: ['API Error: ' + errorMsg]
+          })
+          setLastUpdated(Date.now())
+        }
       } catch (error) {
         console.error('❌ Step 4 Failed: API Error:', error)
         

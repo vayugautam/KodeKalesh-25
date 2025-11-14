@@ -343,7 +343,9 @@ const PredictionSidebar = ({
                       </Typography>
                       <Typography variant="h4" fontWeight={700} color={riskDetails.color}>
                         {predictionResult.score !== null && predictionResult.score !== undefined
-                          ? `${(predictionResult.score * 100).toFixed(1)}%`
+                          ? predictionResult.score > 1 
+                            ? predictionResult.score.toFixed(2) // Raw score if > 1
+                            : `${(predictionResult.score * 100).toFixed(1)}%` // Percentage if 0-1
                           : 'N/A'}
                       </Typography>
                     </Box>

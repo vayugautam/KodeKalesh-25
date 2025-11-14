@@ -32,12 +32,11 @@ body,
   margin-top: auto;
 }
 
-/* Smooth Scrolling for all scrollable containers */
 * {
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar Styling */
+/* Custom scrollbar styling */
 .app-main::-webkit-scrollbar {
   width: 8px;
 }
