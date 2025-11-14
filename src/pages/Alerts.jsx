@@ -29,7 +29,6 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { RISK_COLORS } from '../theme'
 import { useRiskAlerts } from '../hooks/useRisk'
-import { FixedSizeList } from 'react-window'
 import { useSnackbar } from 'notistack'
 
 const FALLBACK_ALERTS = [
@@ -287,104 +286,94 @@ function Alerts() {
               </Box>
             )}
             {!!groupedAlerts.length && (
-              <Box sx={{ flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                <FixedSizeList
-                  ref={listRef}
-                  height={480}
-                  itemCount={groupedAlerts.length}
-                  itemSize={100}
-                  overscanCount={5}
-                  width="100%"
-                >
-                  {({ index, style }) => {
-                    const item = groupedAlerts[index];
-                    const alert = item.isGroup ? item.alert : item;
-                    const isExpanded = item.isGroup && expandedGroups.has(item.groupId);
-                    const palette = severityPalette[alert.severity] || RISK_COLORS.medium;
+              <Box sx={{ flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'auto', maxHeight: 480 }}>
+                {groupedAlerts.map((item, index) => {
+                  const alert = item.isGroup ? item.alert : item;
+                  const isExpanded = item.isGroup && expandedGroups.has(item.groupId);
+                  const palette = severityPalette[alert.severity] || RISK_COLORS.medium;
 
-                    return (
-                      <Box key={alert.id} style={style} sx={{ px: 1, py: 0.5 }}>
-                        <Card variant="outlined" sx={{
-                          bgcolor: alert.severity === 'CRITICAL' ? 'error.50' :
-                                   alert.severity === 'HIGH' ? 'warning.50' :
-                                   alert.severity === 'MEDIUM' ? 'info.50' : 'background.paper',
-                          borderLeft: 4,
-                          borderLeftColor: palette.main
-                        }}>
-                          <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                              <Box sx={{ flex: 1 }}>
-                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                                  <Chip
-                                    size="small"
-                                    sx={{ backgroundColor: palette.main, color: '#fff', fontWeight: 600 }}
-                                    icon={<WarningAmberIcon sx={{ color: 'inherit', fontSize: 14 }} />}
-                                    label={alert.severity}
-                                  />
-                                  <Typography variant="caption" fontWeight={600}>
-                                    {alert.location}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.disabled">
-                                    {alert.updated}
-                                  </Typography>
-                                  {item.isGroup && (
-                                    <Chip
-                                      label={`+${item.similarAlerts.length}`}
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={() => toggleGroup(item.groupId)}
-                                      clickable
-                                    />
-                                  )}
-                                </Stack>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                  {alert.title || alert.details}
+                  return (
+                    <Box key={alert.id} sx={{ px: 1, py: 0.5 }}>
+                      <Card variant="outlined" sx={{
+                        bgcolor: alert.severity === 'CRITICAL' ? 'error.50' :
+                                 alert.severity === 'HIGH' ? 'warning.50' :
+                                 alert.severity === 'MEDIUM' ? 'info.50' : 'background.paper',
+                        borderLeft: 4,
+                        borderLeftColor: palette.main
+                      }}>
+                        <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Box sx={{ flex: 1 }}>
+                              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                                <Chip
+                                  size="small"
+                                  sx={{ backgroundColor: palette.main, color: '#fff', fontWeight: 600 }}
+                                  icon={<WarningAmberIcon sx={{ color: 'inherit', fontSize: 14 }} />}
+                                  label={alert.severity}
+                                />
+                                <Typography variant="caption" fontWeight={600}>
+                                  {alert.location}
                                 </Typography>
-                              </Box>
-                              {item.isGroup && (
-                                <IconButton size="small" onClick={() => toggleGroup(item.groupId)}>
-                                  {isExpanded ? <ExpandLess /> : <ExpandMore />}
-                                </IconButton>
-                              )}
-                            </Stack>
-
+                                <Typography variant="caption" color="text.disabled">
+                                  {alert.updated}
+                                </Typography>
+                                {item.isGroup && (
+                                  <Chip
+                                    label={`+${item.similarAlerts.length}`}
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => toggleGroup(item.groupId)}
+                                    clickable
+                                  />
+                                )}
+                              </Stack>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                {alert.title || alert.details}
+                              </Typography>
+                            </Box>
                             {item.isGroup && (
-                              <Collapse in={isExpanded}>
-                                <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'divider' }}>
-                                  {item.similarAlerts.map((similarAlert) => {
-                                    const simPalette = severityPalette[similarAlert.severity] || RISK_COLORS.medium;
-                                    return (
-                                      <Card key={similarAlert.id} variant="outlined" sx={{ mb: 1, bgcolor: 'background.paper' }}>
-                                        <CardContent sx={{ py: 0.5, '&:last-child': { pb: 0.5 } }}>
-                                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                                            <Chip
-                                              size="small"
-                                              sx={{ backgroundColor: simPalette.main, color: '#fff', fontSize: 10 }}
-                                              label={similarAlert.severity}
-                                            />
-                                            <Typography variant="caption" fontWeight={600}>
-                                              {similarAlert.location}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.disabled">
-                                              {similarAlert.updated}
-                                            </Typography>
-                                          </Stack>
-                                          <Typography variant="caption" color="text.secondary" display="block">
-                                            {similarAlert.title || similarAlert.details}
-                                          </Typography>
-                                        </CardContent>
-                                      </Card>
-                                    );
-                                  })}
-                                </Box>
-                              </Collapse>
+                              <IconButton size="small" onClick={() => toggleGroup(item.groupId)}>
+                                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
                             )}
-                          </CardContent>
-                        </Card>
-                      </Box>
-                    );
-                  }}
-                </FixedSizeList>
+                          </Stack>
+
+                          {item.isGroup && (
+                            <Collapse in={isExpanded}>
+                              <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'divider' }}>
+                                {item.similarAlerts.map((similarAlert) => {
+                                  const simPalette = severityPalette[similarAlert.severity] || RISK_COLORS.medium;
+                                  return (
+                                    <Card key={similarAlert.id} variant="outlined" sx={{ mb: 1, bgcolor: 'background.paper' }}>
+                                      <CardContent sx={{ py: 0.5, '&:last-child': { pb: 0.5 } }}>
+                                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                                          <Chip
+                                            size="small"
+                                            sx={{ backgroundColor: simPalette.main, color: '#fff', fontSize: 10 }}
+                                            label={similarAlert.severity}
+                                          />
+                                          <Typography variant="caption" fontWeight={600}>
+                                            {similarAlert.location}
+                                          </Typography>
+                                          <Typography variant="caption" color="text.disabled">
+                                            {similarAlert.updated}
+                                          </Typography>
+                                        </Stack>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                          {similarAlert.title || similarAlert.details}
+                                        </Typography>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })}
+                              </Box>
+                            </Collapse>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Box>
+                  );
+                })}
               </Box>
             )}
             {hasNewWhilePaused && !followFeed && (
