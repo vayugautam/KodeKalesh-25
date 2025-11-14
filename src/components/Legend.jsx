@@ -5,7 +5,6 @@ import {
   Divider 
 } from '@mui/material'
 import SquareIcon from '@mui/icons-material/Square'
-import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import CircleIcon from '@mui/icons-material/Circle'
 
 // Updated legend items for risk zones and fire hotspots

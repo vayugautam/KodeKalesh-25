@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Paper, Box, Typography, Grid, CircularProgress } from '@mui/material'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WaterDropIcon from '@mui/icons-material/WaterDrop'
@@ -282,3 +283,15 @@ function getSlopeCategory(degrees) {
 }
 
 export default WeatherInfoPanel
+
+WeatherInfoPanel.propTypes = {
+  weatherData: PropTypes.shape({
+    current: PropTypes.shape({
+      temperature: PropTypes.number,
+      humidity: PropTypes.number,
+      windDirection: PropTypes.number,
+      windSpeed: PropTypes.number,
+    }),
+  }),
+  loading: PropTypes.bool,
+}

@@ -1,16 +1,19 @@
-# Kodekalesh25 - React + Vite Application
+# Forest Fire Prediction Dashboard
 
-A modern React application built with Vite, featuring Material-UI, Leaflet maps, Recharts, and Axios.
+A modern React application for real-time forest fire prediction and monitoring, featuring interactive maps, weather integration, and risk assessment.
 
 ## 📁 Project Structure
 
 ```
 src/
-  ├── components/     # Reusable UI components
-  ├── pages/          # Page components
-  ├── hooks/          # Custom React hooks
-  ├── utils/          # Utility functions and helpers
-  └── assets/         # Static assets (images, fonts, etc.)
+  ├── components/     # Reusable UI components (Navbar, Sidebar, MapView, etc.)
+  ├── pages/          # Page components (MapPage, Home)
+  ├── hooks/          # Custom React hooks (useWeather, useRiskZones, etc.)
+  ├── utils/          # Utility functions (API clients, PDF export, etc.)
+  ├── theme.js        # Centralized color theme and risk level utilities
+  └── assets/         # Static assets
+public/
+  └── data/           # Dummy JSON data (fireLocations, riskZones, weatherData)
 ```
 
 ## 🚀 Tech Stack
@@ -19,8 +22,9 @@ src/
 - **Vite** - Build tool and dev server
 - **Material-UI** - Component library
 - **React Router DOM** - Routing
-- **Leaflet** - Interactive maps
-- **Recharts** - Data visualization
+- **Leaflet + React-Leaflet** - Interactive maps with heatmap
+- **Open-Meteo API** - Real-time weather data
+- **jsPDF + html2canvas** - PDF export and screenshots
 - **Axios** - HTTP client
 
 ## 📦 Installation
@@ -49,17 +53,81 @@ npm run build
 npm run preview
 ```
 
-## 📚 Features
+## ✨ Key Features
 
-- ✅ Modern React with Hooks
-- ✅ Material-UI components
-- ✅ Interactive Leaflet maps
-- ✅ Recharts for data visualization
-- ✅ Axios HTTP client with interceptors
-- ✅ Custom hooks (useCounter example)
-- ✅ Utility functions
-- ✅ React Router for navigation
-- ✅ ESLint configuration
+### 🎯 Global App Shell
+- ✅ **CSS Grid Layout** - Fixed header, collapsible sidebar, main content area
+- ✅ **Smooth Scrolling** - `scroll-behavior: smooth` for all scrollable containers
+- ✅ **Keyboard Navigation**
+  - `Ctrl+B` - Toggle sidebar
+  - `/` - Focus search input
+- ✅ **Accessible ARIA Attributes** - Proper roles for header, nav, and main
+
+### 🗺️ Interactive Map
+- ✅ Leaflet map with fire location markers
+- ✅ Dynamic heatmap visualization
+- ✅ Timeline slider (0h → 24h predictions)
+- ✅ Auto-play timeline feature
+- ✅ Risk zone polygons (low/medium/high)
+
+### 🌤️ Real-Time Weather
+- ✅ Open-Meteo API integration (10k free calls/day)
+- ✅ Current weather data (temperature, humidity, wind)
+- ✅ Hourly forecasts
+- ✅ Automatic fire risk calculation
+
+### 🚨 Alert System
+- ✅ Dynamic alert list based on weather conditions
+- ✅ Critical alerts highlighted in red
+- ✅ Risk score (0-100) with color-coded levels
+
+### 📊 Professional Reporting
+- ✅ PDF export with map screenshot
+- ✅ Screenshot download functionality
+- ✅ Floating action buttons (FAB)
+- ✅ Complete risk assessment reports
+
+### 🎨 UI/UX
+- ✅ Responsive navbar with Home|Map|Alerts|Reports
+- ✅ Professional footer with GitHub link
+- ✅ Skeleton loading states
+- ✅ Consistent color theme (Green/Yellow/Red)
+- ✅ Collapsible left sidebar with quick stats
+- ✅ Custom scrollbar styling
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+B` | Toggle sidebar |
+| `/` | Focus search input |
+| `Tab` | Navigate focusable elements |
+| `Enter` | Activate focused element |
+
+## 🎨 Color Theme
+
+```javascript
+RISK_COLORS = {
+  safe: '#4caf50',      // Green
+  medium: '#ffd54f',    // Yellow
+  danger: '#f44336',    // Red
+  critical: '#b71c1c'   // Dark Red
+}
+```
+
+## 📡 API Integration
+
+### Open-Meteo Weather API
+- **Endpoint:** `https://api.open-meteo.com/v1/forecast`
+- **No API Key Required**
+- **Free Tier:** 10,000 calls/day
+
+### Dummy Data Files (for Backend Integration)
+- `public/data/fireLocations.json` - 6 active fire locations
+- `public/data/riskZones.json` - 8 risk zones (2 low, 3 medium, 3 high)
+- `public/data/weatherData.json` - Weather forecasts
+
+See `public/data/README.md` for backend integration guide.
 
 ## 🛠️ Available Scripts
 
@@ -68,6 +136,80 @@ npm run preview
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
-## 📝 License
+## 📂 Component Architecture
+
+### App Shell (`App.jsx`)
+- Responsive CSS Grid layout
+- Persistent sidebar drawer (280px)
+- Smooth transitions (0.3s ease)
+- Global keyboard event handlers
+
+### Main Pages
+- **MapPage** - Dashboard with map, sidebars, weather panel
+- **Home** - Landing page (placeholder)
+- **Alerts** - Alert listing page (placeholder)
+- **Reports** - Report generation page (placeholder)
+
+### Key Components
+- **Navbar** - Sticky header with navigation
+- **Sidebar** - Left collapsible sidebar with quick access
+- **MapView** - Leaflet map with heatmap layer
+- **RightSidebar** - Timeline, predictions, alerts
+- **WeatherInfoPanel** - Real-time weather display
+- **Footer** - Professional footer with links
+
+## 🔧 Configuration
+
+### Environment Variables
+Create a `.env` file:
+```bash
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+## 🚀 Deployment
+
+```bash
+npm run build
+```
+
+Deploy the `dist/` folder to any static hosting service:
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS S3
+
+## 📝 Git Workflow
+
+```bash
+# Stage changes
+git add .
+
+# Commit with message
+git commit -m "Your commit message"
+
+# Push to GitHub
+git push origin master
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
 
 MIT
+
+## 🔗 Links
+
+- **GitHub Repository:** [vayugautam/KodeKalesh-25](https://github.com/vayugautam/KodeKalesh-25)
+- **Open-Meteo API:** [https://open-meteo.com/](https://open-meteo.com/)
+- **Leaflet Documentation:** [https://leafletjs.com/](https://leafletjs.com/)
+- **Material-UI:** [https://mui.com/](https://mui.com/)
+
+---
+
+**Built with ❤️ using React + Vite**

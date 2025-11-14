@@ -1,0 +1,205 @@
+/* ============================================
+   ACCESSIBILITY STYLES
+   Enhanced focus outlines and keyboard navigation
+   ============================================ */
+
+/* Remove default focus outline for mouse users */
+*:focus {
+  outline: none;
+}
+
+/* Show clear focus outline ONLY for keyboard navigation */
+*:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline 0.2s ease-in-out;
+}
+
+/* Custom focus styles for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.1);
+}
+
+/* Focus styles for links */
+a:focus-visible {
+  outline-color: #1976d2;
+  background-color: rgba(25, 118, 210, 0.05);
+  text-decoration: underline;
+}
+
+/* Focus styles for Material-UI components */
+.MuiButton-root:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.15);
+}
+
+.MuiIconButton-root:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.15);
+}
+
+.MuiFab-root:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(25, 118, 210, 0.2);
+}
+
+.MuiTextField-root input:focus-visible,
+.MuiInputBase-root:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* High contrast focus for critical actions */
+.critical-action:focus-visible,
+.danger-action:focus-visible {
+  outline-color: #f44336;
+  box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.2);
+}
+
+/* Focus styles for custom elements */
+.focusable:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #1976d2;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 9999;
+  border-radius: 0 0 4px 0;
+  font-weight: 600;
+  transition: top 0.3s ease;
+}
+
+.skip-to-main:focus {
+  top: 0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus within - highlight container when child has focus */
+.focus-within-highlight:focus-within {
+  background-color: rgba(25, 118, 210, 0.05);
+  border-color: rgba(25, 118, 210, 0.3);
+}
+
+/* Keyboard navigation indicator */
+body.using-keyboard *:focus {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+}
+
+body.using-mouse *:focus {
+  outline: none;
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 4px;
+    outline-offset: 3px;
+  }
+  
+  button:focus-visible,
+  a:focus-visible {
+    outline-width: 4px;
+    box-shadow: 0 0 0 6px rgba(25, 118, 210, 0.3);
+  }
+}
+
+/* Focus trap styling (for modals/dialogs) */
+.focus-trap {
+  position: relative;
+}
+
+.focus-trap::before,
+.focus-trap::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Accessible tooltips on focus */
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  z-index: 1000;
+}
+
+/* Active state for better feedback */
+button:active,
+.MuiButton-root:active {
+  transform: scale(0.98);
+}
+
+/* Disabled state should be obvious */
+button:disabled,
+.MuiButton-root:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Ensure proper color contrast for text */
+.text-contrast {
+  color: #000;
+  background: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .text-contrast {
+    color: #fff;
+    background: #000;
+  }
+}

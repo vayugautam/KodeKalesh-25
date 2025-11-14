@@ -20,6 +20,9 @@ function Navbar() {
     <AppBar 
       position="sticky" 
       elevation={2}
+      component="nav"
+      role="navigation"
+      aria-label="Primary navigation"
       sx={{ 
         backgroundColor: '#1976d2',
         zIndex: 1300,
@@ -28,7 +31,7 @@ function Navbar() {
       <Toolbar>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 4 }}>
-          <LocalFireDepartmentIcon sx={{ fontSize: 32, color: '#ff5722' }} />
+          <LocalFireDepartmentIcon sx={{ fontSize: 32, color: '#ff5722' }} aria-hidden="true" />
           <Typography 
             variant="h6" 
             component="div" 
@@ -42,13 +45,18 @@ function Navbar() {
         </Box>
 
         {/* Navigation Links */}
-        <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+        <Box 
+          component="nav"
+          sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}
+          aria-label="Main navigation links"
+        >
           {navItems.map((item) => (
             <Button
               key={item.path}
               component={Link}
               to={item.path}
               startIcon={item.icon}
+              aria-current={location.pathname === item.path ? 'page' : undefined}
               sx={{
                 color: 'white',
                 backgroundColor: location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent',
@@ -65,12 +73,18 @@ function Navbar() {
         </Box>
 
         {/* Mobile Navigation */}
-        <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' }, gap: 0.5 }}>
+        <Box 
+          component="nav"
+          sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' }, gap: 0.5 }}
+          aria-label="Mobile navigation links"
+        >
           {navItems.map((item) => (
             <IconButton
               key={item.path}
               component={Link}
               to={item.path}
+              aria-label={item.label}
+              aria-current={location.pathname === item.path ? 'page' : undefined}
               sx={{
                 color: 'white',
                 backgroundColor: location.pathname === item.path ? 'rgba(255,255,255,0.15)' : 'transparent',

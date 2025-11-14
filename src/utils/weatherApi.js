@@ -4,7 +4,7 @@ import axios from 'axios'
  * Weather and Risk API Service
  */
 const weatherApi = axios.create({
-  baseURL: import.meta.env.VITE_WEATHER_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_WEATHER_API_BASE_URL || 'http://localhost:3001',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export const riskService = {
 
   // Get all active risk zones
   getRiskZones: async () => {
-    const response = await weatherApi.get('/risk/zones')
+    const response = await weatherApi.get('/riskZones')
     return response.data
   },
 
@@ -126,7 +126,7 @@ export const riskService = {
 
   // Get fire hotspots
   getFireHotspots: async () => {
-    const response = await weatherApi.get('/risk/fire-hotspots')
+    const response = await weatherApi.get('/fireHotspots')
     return response.data
   },
 }

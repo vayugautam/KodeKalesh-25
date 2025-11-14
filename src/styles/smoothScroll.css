@@ -1,0 +1,221 @@
+/* ============================================
+   SMOOTH SCROLLING STYLES
+   Enhanced scrolling behavior with fixed header offset
+   ============================================ */
+
+/* Global smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Fixed header offset */
+}
+
+/* Smooth scrolling for all scrollable containers */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Main content area smooth scrolling */
+.app-main {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+}
+
+/* Custom scrollbar for better UX */
+.app-main::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.app-main::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.app-main::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.app-main::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.app-main::-webkit-scrollbar-thumb:active {
+  background: #333;
+}
+
+/* Firefox scrollbar */
+.app-main {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+/* Smooth scroll anchors with offset */
+.scroll-target {
+  scroll-margin-top: 80px;
+}
+
+/* Scroll snap for sections (optional) */
+.scroll-snap-container {
+  scroll-snap-type: y proximity;
+}
+
+.scroll-snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+/* Back to top button */
+.scroll-to-top {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+.scroll-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.scroll-to-top:hover {
+  transform: translateY(-4px);
+}
+
+/* Scroll progress indicator */
+.scroll-progress {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
+  z-index: 1300;
+  transition: width 0.1s ease-out;
+}
+
+/* Smooth scroll for hash links */
+:target {
+  scroll-margin-top: 80px;
+}
+
+/* Prevent layout shift during scroll */
+.scroll-lock {
+  overflow: hidden;
+  padding-right: var(--scrollbar-width, 0px);
+}
+
+/* Scroll shadow (shows when content is scrollable) */
+.scroll-shadow {
+  position: relative;
+}
+
+.scroll-shadow::before,
+.scroll-shadow::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.scroll-shadow::before {
+  top: 64px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), transparent);
+}
+
+.scroll-shadow::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
+}
+
+.scroll-shadow.has-scroll-top::before {
+  opacity: 1;
+}
+
+.scroll-shadow.has-scroll-bottom::after {
+  opacity: 1;
+}
+
+/* Horizontal smooth scroll for carousels */
+.horizontal-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  *,
+  .app-main {
+    scroll-behavior: auto !important;
+  }
+  
+  .scroll-to-top {
+    transition: none;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  html {
+    scroll-padding-top: 64px;
+  }
+  
+  .app-main {
+    scroll-padding-top: 64px;
+  }
+  
+  .scroll-target {
+    scroll-margin-top: 64px;
+  }
+  
+  :target {
+    scroll-margin-top: 64px;
+  }
+}
+
+/* Smooth height transitions */
+.smooth-height {
+  transition: height 0.3s ease;
+}
+
+/* Fade in on scroll */
+.fade-in-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

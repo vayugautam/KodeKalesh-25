@@ -55,7 +55,7 @@ export function useRiskAssessment(lat, lon, enabled = true) {
 /**
  * Custom hook to fetch risk alerts
  */
-export function useRiskAlerts(region, enabled = true) {
+export function useRiskAlerts(region, enabled = true, refreshKey = 0) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -80,7 +80,7 @@ export function useRiskAlerts(region, enabled = true) {
     }
 
     fetchRiskAlerts()
-  }, [region, enabled])
+  }, [region, enabled, refreshKey])
 
   return { data, loading, error }
 }
@@ -134,7 +134,7 @@ export function useRiskZones(enabled = true) {
 /**
  * Custom hook to fetch risk statistics
  */
-export function useRiskStatistics(enabled = true) {
+export function useRiskStatistics(enabled = true, refreshKey = 0) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -159,7 +159,7 @@ export function useRiskStatistics(enabled = true) {
     }
 
     fetchStatistics()
-  }, [enabled])
+  }, [enabled, refreshKey])
 
   return { data, loading, error }
 }

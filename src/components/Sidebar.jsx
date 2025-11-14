@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { 
   Box, 
   Typography, 
@@ -5,13 +6,11 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   TextField,
   Paper,
   Divider
 } from '@mui/material'
 import CircleIcon from '@mui/icons-material/Circle'
-import { useState } from 'react'
 
 const SIDEBAR_WIDTH = 400
 
@@ -213,3 +212,11 @@ function Sidebar({ onFetchPrediction, selectedRegion, setSelectedRegion, selecte
 }
 
 export default Sidebar
+
+Sidebar.propTypes = {
+  onFetchPrediction: PropTypes.func,
+  selectedRegion: PropTypes.string.isRequired,
+  setSelectedRegion: PropTypes.func.isRequired,
+  selectedDate: PropTypes.string.isRequired,
+  setSelectedDate: PropTypes.func.isRequired,
+}

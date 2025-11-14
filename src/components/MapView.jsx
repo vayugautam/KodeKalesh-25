@@ -1,15 +1,21 @@
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, CircleMarker, LayersControl, useMap } from 'react-leaflet'
+import PropTypes from 'prop-types'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, LayersControl, useMap } from 'react-leaflet'
+import SafeMarkerClusterGroup from './SafeMarkerClusterGroup'
+import ProgressivePolygonLayer from './ProgressivePolygonLayer'
 import 'leaflet/dist/leaflet.css'
+import '../styles/markerCluster.css'
 import L from 'leaflet'
-import { Box, Typography, Chip, IconButton, Paper, Divider } from '@mui/material'
+import { Box, Typography, Chip, Paper, Divider } from '@mui/material'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import WarningIcon from '@mui/icons-material/Warning'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WaterDropIcon from '@mui/icons-material/WaterDrop'
 import AirIcon from '@mui/icons-material/Air'
 import Schedule from '@mui/icons-material/Schedule'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import 'leaflet.heat'
+import { useHeatmapTransition } from '../hooks/useHeatmapTransition'
+import { useSimulationPrefetch } from '../hooks/useSimulationPrefetch'
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -39,6 +45,175 @@ const fireIcon = new L.DivIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 })
+
+// Custom cluster icon creator - dynamically sized based on cluster size
+const createClusterCustomIcon = (cluster) => {
+  const childCount = cluster.getChildCount()
+  const markers = cluster.getAllChildMarkers()
+  
+  // Calculate average risk score for cluster
+  const avgRisk = markers.reduce((sum, marker) => {
+    const fire = FIRE_LOCATIONS.find(f => 
+      f.position[0] === marker.getLatLng().lat && 
+      f.position[1] === marker.getLatLng().lng
+    )
+    return sum + (fire?.riskScore || 0)
+  }, 0) / childCount
+  
+  // Determine cluster color based on average risk
+  let bgColor, borderColor, textColor
+  if (avgRisk >= 0.7) {
+    bgColor = 'rgba(244, 67, 54, 0.9)'    // High risk - red
+    borderColor = '#d32f2f'
+    textColor = '#fff'
+  } else if (avgRisk >= 0.5) {
+    bgColor = 'rgba(255, 152, 0, 0.9)'    // Medium risk - orange
+    borderColor = '#f57c00'
+    textColor = '#fff'
+  } else {
+    bgColor = 'rgba(255, 193, 7, 0.9)'    // Low risk - amber
+    borderColor = '#ffa000'
+    textColor = '#000'
+  }
+  
+  // Size based on count
+  const size = childCount < 10 ? 40 : childCount < 50 ? 50 : 60
+  
+  return L.divIcon({
+    html: `
+      <div style="
+        background: ${bgColor};
+        border: 3px solid ${borderColor};
+        border-radius: 50%;
+        width: ${size}px;
+        height: ${size}px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+        animation: cluster-pulse 2s ease-in-out infinite;
+        position: relative;
+      ">
+        <div style="
+          font-size: ${size > 50 ? '18px' : '16px'};
+          font-weight: bold;
+          color: ${textColor};
+          line-height: 1;
+        ">${childCount}</div>
+        <div style="
+          font-size: 9px;
+          color: ${textColor};
+          opacity: 0.9;
+          margin-top: 2px;
+        ">hotspots</div>
+      </div>
+    `,
+    className: 'custom-cluster-icon',
+    iconSize: L.point(size, size, true),
+  })
+}
+
+// Create cluster popup content with top 3 hotspots sorted by risk
+const createClusterPopupContent = (cluster) => {
+  const markers = cluster.getAllChildMarkers()
+  const childCount = markers.length
+  
+  // Get fire data for all markers and sort by risk score
+  const fires = markers
+    .map(marker => {
+      return FIRE_LOCATIONS.find(f => 
+        f.position[0] === marker.getLatLng().lat && 
+        f.position[1] === marker.getLatLng().lng
+      )
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.riskScore - a.riskScore)
+  
+  const top3 = fires.slice(0, 3)
+  const avgRisk = fires.reduce((sum, f) => sum + f.riskScore, 0) / fires.length
+  
+  // Create HTML content
+  const riskColor = avgRisk >= 0.7 ? '#f44336' : avgRisk >= 0.5 ? '#ff9800' : '#ffc107'
+  
+  return `
+    <div style="min-width: 280px; padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <div style="font-size: 24px;">🔥</div>
+        <div>
+          <div style="font-weight: bold; font-size: 16px; color: #333;">Fire Cluster</div>
+          <div style="font-size: 13px; color: #666;">${childCount} hotspot${childCount > 1 ? 's' : ''} detected</div>
+        </div>
+      </div>
+      
+      <div style="background: #f5f5f5; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px;">
+        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Average Risk Score</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 20px; font-weight: bold; color: ${riskColor};">
+            ${(avgRisk * 100).toFixed(0)}%
+          </div>
+          <div style="
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: ${riskColor};
+            color: white;
+            font-weight: bold;
+          ">
+            ${avgRisk >= 0.7 ? 'HIGH' : avgRisk >= 0.5 ? 'MEDIUM' : 'LOW'}
+          </div>
+        </div>
+      </div>
+      
+      <div style="border-top: 1px solid #e0e0e0; padding-top: 12px;">
+        <div style="font-size: 12px; font-weight: bold; color: #666; margin-bottom: 8px;">📊 Top 3 Hotspots by Risk</div>
+        ${top3.map((fire, idx) => `
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: ${idx === 0 ? 'rgba(244,67,54,0.05)' : idx === 1 ? 'rgba(255,152,0,0.05)' : 'rgba(255,193,7,0.05)'};
+            border-left: 3px solid ${idx === 0 ? '#f44336' : idx === 1 ? '#ff9800' : '#ffc107'};
+            border-radius: 4px;
+            margin-bottom: 6px;
+          ">
+            <div style="
+              font-size: 16px;
+              font-weight: bold;
+              color: ${idx === 0 ? '#f44336' : idx === 1 ? '#ff9800' : '#ffc107'};
+              min-width: 20px;
+            ">#${idx + 1}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${fire.name}
+              </div>
+              <div style="font-size: 11px; color: #666; margin-top: 2px;">
+                🌡️ ${fire.temperature}°C | 💧 ${fire.humidity}% | 💨 ${fire.windSpeed} km/h
+              </div>
+            </div>
+            <div style="
+              font-size: 14px;
+              font-weight: bold;
+              color: ${fire.riskScore >= 0.7 ? '#f44336' : fire.riskScore >= 0.5 ? '#ff9800' : '#ffc107'};
+            ">${(fire.riskScore * 100).toFixed(0)}%</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div style="
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 11px;
+        color: #999;
+        text-align: center;
+      ">
+        💡 Zoom in to see individual markers
+      </div>
+    </div>
+  `
+}
 
 // Fire location markers with dummy data
 const FIRE_LOCATIONS = [
@@ -216,68 +391,217 @@ const PLACEHOLDER_RISK_ZONES = {
   ],
 }
 
-// Heatmap Layer Component
-function HeatmapLayer({ points, timelineValue = 0 }) {
+// Tile Loading Tracker Component
+function TileLoadingTracker({ onLoadStart, onLoadComplete }) {
   const map = useMap()
+  const [tilesToLoad, setTilesToLoad] = useState(0)
+  const [tilesLoaded, setTilesLoaded] = useState(0)
 
   useEffect(() => {
-    if (!map || !points || points.length === 0) return
+    if (!map) return
 
-    // Calculate intensity multiplier based on timeline
-    const intensityMultiplier = 1 + (timelineValue / 6) * 0.15;
-    const radiusIncrease = (timelineValue / 6) * 8;
+    const handleTileLoadStart = () => {
+      setTilesToLoad(prev => prev + 1)
+      if (onLoadStart) onLoadStart()
+    }
 
-    // Create heatmap data with timeline-adjusted intensity
-    const heatData = points.map(point => [
-      point.position[0],
-      point.position[1],
-      Math.min((point.riskScore || 0.5) * intensityMultiplier, 1.0)
-    ])
+    const handleTileLoad = () => {
+      setTilesLoaded(prev => {
+        const newLoaded = prev + 1
+        return newLoaded
+      })
+    }
 
-    // Add heatmap layer with dynamic radius
-    const heat = L.heatLayer(heatData, {
-      radius: 40 + radiusIncrease,
-      blur: 50 + (radiusIncrease * 0.5),
-      maxZoom: 10,
-      max: 1.0,
-      gradient: {
-        0.0: '#4caf50',
-        0.5: '#ffd54f',
-        0.7: '#ff9800',
-        1.0: '#e57373'
-      }
-    }).addTo(map)
+    const handleTileLoadError = () => {
+      setTilesLoaded(prev => prev + 1)
+    }
+
+    map.on('tileloadstart', handleTileLoadStart)
+    map.on('tileload', handleTileLoad)
+    map.on('tileerror', handleTileLoadError)
 
     return () => {
-      map.removeLayer(heat)
+      map.off('tileloadstart', handleTileLoadStart)
+      map.off('tileload', handleTileLoad)
+      map.off('tileerror', handleTileLoadError)
     }
-  }, [map, points, timelineValue])
+  }, [map, onLoadStart])
+
+  useEffect(() => {
+    if (tilesToLoad > 0 && tilesLoaded >= tilesToLoad) {
+      const timer = setTimeout(() => {
+        if (onLoadComplete) onLoadComplete()
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [tilesToLoad, tilesLoaded, onLoadComplete])
 
   return null
 }
 
-function MapView({ selectedLocation, locations, riskZones, loading, selectedRegion, onLocationSelect, timelineValue = 0, currentPrediction }) {
+// Wrapper component to track heatmap transition state
+function AnimatedHeatmapLayer({ points, timelineValue, onTransitionChange }) {
+  const previousPointsRef = useRef(points)
+  const map = useMap()
+  const heatLayerRef = useRef(null)
+  const oldHeatLayerRef = useRef(null)
+
+  // Use animated transition hook
+  const { currentData, isTransitioning, progress } = useHeatmapTransition(
+    previousPointsRef.current,
+    points,
+    600,
+    timelineValue
+  )
+
+  // Notify parent of transition state changes
+  useEffect(() => {
+    if (onTransitionChange) {
+      onTransitionChange(isTransitioning)
+    }
+  }, [isTransitioning, onTransitionChange])
+
+  useEffect(() => {
+    if (!map || !currentData || currentData.length === 0) return
+
+    // Calculate intensity multiplier based on timeline
+    const intensityMultiplier = 1 + (timelineValue / 6) * 0.15
+    const radiusIncrease = (timelineValue / 6) * 8
+
+    // Create heatmap data with interpolated intensities and opacity
+    const heatData = currentData.map(point => {
+      // Use interpolated intensity if available, otherwise calculate
+      const intensity = point._interpolatedIntensity !== undefined
+        ? point._interpolatedIntensity
+        : Math.min((point.riskScore || 0.5) * intensityMultiplier, 1.0)
+      
+      return [
+        point.position[0],
+        point.position[1],
+        Math.min(intensity, 1.0)
+      ]
+    })
+
+    // During transition, crossfade between old and new layers
+    if (isTransitioning && progress < 1) {
+      // Keep old layer visible during transition
+      if (heatLayerRef.current && !oldHeatLayerRef.current) {
+        oldHeatLayerRef.current = heatLayerRef.current
+      }
+
+      // Create new layer with opacity based on progress
+      const newHeat = L.heatLayer(heatData, {
+        radius: 40 + radiusIncrease,
+        blur: 50 + (radiusIncrease * 0.5),
+        maxZoom: 10,
+        max: 1.0,
+        gradient: {
+          0.0: '#4caf50',
+          0.5: '#ffd54f',
+          0.7: '#ff9800',
+          1.0: '#e57373'
+        },
+        minOpacity: 0.4 * progress, // Fade in
+        maxOpacity: 0.8 * progress
+      })
+
+      // Add new layer
+      newHeat.addTo(map)
+      heatLayerRef.current = newHeat
+
+      // Fade out old layer
+      if (oldHeatLayerRef.current) {
+        const oldOpacity = 0.8 * (1 - progress)
+        oldHeatLayerRef.current.setOptions({
+          minOpacity: 0.4 * (1 - progress),
+          maxOpacity: oldOpacity
+        })
+
+        // Remove old layer when fully faded
+        if (progress >= 0.98) {
+          map.removeLayer(oldHeatLayerRef.current)
+          oldHeatLayerRef.current = null
+        }
+      }
+    } else {
+      // No transition - normal update
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current)
+      }
+      if (oldHeatLayerRef.current) {
+        map.removeLayer(oldHeatLayerRef.current)
+        oldHeatLayerRef.current = null
+      }
+
+      const heat = L.heatLayer(heatData, {
+        radius: 40 + radiusIncrease,
+        blur: 50 + (radiusIncrease * 0.5),
+        maxZoom: 10,
+        max: 1.0,
+        gradient: {
+          0.0: '#4caf50',
+          0.5: '#ffd54f',
+          0.7: '#ff9800',
+          1.0: '#e57373'
+        },
+        minOpacity: 0.4,
+        maxOpacity: 0.8
+      })
+
+      heat.addTo(map)
+      heatLayerRef.current = heat
+    }
+
+    // Update previous points reference
+    if (!isTransitioning) {
+      previousPointsRef.current = points
+    }
+
+    return () => {
+      if (heatLayerRef.current) {
+        try {
+          map.removeLayer(heatLayerRef.current)
+        } catch {
+          // Layer already removed
+        }
+      }
+      if (oldHeatLayerRef.current) {
+        try {
+          map.removeLayer(oldHeatLayerRef.current)
+        } catch {
+          // Layer already removed
+        }
+      }
+    }
+  }, [map, currentData, timelineValue, isTransitioning, progress, points])
+
+  return null
+}
+
+// Heatmap Layer Component with Animated Transitions
+
+
+function MapView({ selectedLocation, locations, riskZones, onLocationSelect, timelineValue = 0, currentPrediction, showDebugLayers = false }) {
   const defaultCenter = [22.5937, 78.9629] // Center of India
   const defaultZoom = 5
   const [showHeatmap, setShowHeatmap] = useState(true)
+  const [mapLoading, setMapLoading] = useState(true)
+  const [tilesLoading, setTilesLoading] = useState(true)
+  const [showAttribution, setShowAttribution] = useState(false)
+  const [heatmapTransitioning, setHeatmapTransitioning] = useState(false)
 
   // Use API risk zones if available, otherwise use placeholder
   const displayRiskZones = riskZones || PLACEHOLDER_RISK_ZONES
   const displayLocations = locations || []
   const displayFireLocations = FIRE_LOCATIONS // Fire markers with dummy data
 
-  // Generate heatmap data based on timeline - intensity increases over time
-  const getHeatmapIntensity = (baseIntensity, timeHours) => {
-    // Increase intensity by 10% every 6 hours
-    const multiplier = 1 + (timeHours / 6) * 0.1;
-    return Math.min(baseIntensity * multiplier, 1.0);
-  };
+  const totalFrames = useMemo(() => Math.max(displayFireLocations.length * 4, 24), [displayFireLocations.length])
 
-  const getHeatmapRadius = (baseRadius, timeHours) => {
-    // Increase radius by 5 pixels every 6 hours
-    const increase = (timeHours / 6) * 5;
-    return baseRadius + increase;
-  };
+  const { currentFrameData } = useSimulationPrefetch({
+    currentFrame: timelineValue,
+    totalFrames,
+    seedOffset: currentPrediction?.risk || 0,
+  })
 
   // Get zone color configuration to match the design
   const getZoneStyle = (riskLevel) => {
@@ -342,12 +666,115 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.15); opacity: 0.8; }
           }
+          @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .map-skeleton {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              #e0e0e0 0%,
+              #f0f0f0 50%,
+              #e0e0e0 100%
+            );
+            background-size: 2000px 100%;
+            animation: shimmer 2s infinite linear;
+            z-index: 1001;
+          }
+          .tile-loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+          }
+          .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
           .leaflet-control-layers {
             border-radius: 8px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
           }
+          .leaflet-control-attribution {
+            display: none;
+          }
+          @keyframes pulse-dot {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
         `}
       </style>
+
+      {/* Map Loading Skeleton */}
+      {mapLoading && (
+        <div className="map-skeleton" />
+      )}
+
+      {/* Tile Loading Spinner */}
+      {tilesLoading && !mapLoading && (
+        <div className="tile-loading-spinner">
+          <div className="spinner" />
+          <Typography variant="body2" color="text.secondary" fontWeight={500}>
+            Loading map tiles...
+          </Typography>
+        </div>
+      )}
+
+      {/* Heatmap Transition Indicator */}
+      {heatmapTransitioning && showHeatmap && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            top: 80,
+            right: 80,
+            zIndex: 1000,
+            px: 2,
+            py: 1,
+            bgcolor: 'rgba(25, 118, 210, 0.95)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            borderRadius: 2,
+            boxShadow: 2
+          }}
+        >
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: 'white',
+              animation: 'pulse-dot 1.5s ease-in-out infinite'
+            }}
+          />
+          <Typography variant="caption" fontWeight={500}>
+            Transitioning heatmap...
+          </Typography>
+        </Paper>
+      )}
 
       {/* Heatmap Toggle Control */}
       <Paper
@@ -389,6 +816,61 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
           {showHeatmap ? 'ON' : 'OFF'}
         </Box>
       </Paper>
+
+      {/* Attribution Toggle Button */}
+      <Paper
+        sx={{
+          position: 'absolute',
+          bottom: 10,
+          right: 10,
+          zIndex: 1000,
+          p: 0.5,
+          bgcolor: 'white',
+          boxShadow: 1,
+          cursor: 'pointer',
+          '&:hover': {
+            boxShadow: 2
+          }
+        }}
+        onClick={() => setShowAttribution(!showAttribution)}
+        title="Toggle attribution"
+      >
+        <Typography variant="caption" fontWeight={500} sx={{ px: 1, fontSize: '0.7rem' }}>
+          ©
+        </Typography>
+      </Paper>
+
+      {/* Attribution Panel */}
+      {showAttribution && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            bottom: 50,
+            right: 10,
+            zIndex: 1000,
+            p: 2,
+            maxWidth: 300,
+            bgcolor: 'rgba(255,255,255,0.98)',
+            boxShadow: 3
+          }}
+        >
+          <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+            Map Attribution
+          </Typography>
+          <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+            © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
+          </Typography>
+          <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+            © <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> (Satellite)
+          </Typography>
+          <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+            © <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> (Dark Mode)
+          </Typography>
+          <Typography variant="caption" display="block" color="text.secondary">
+            Tiles © Respective providers
+          </Typography>
+        </Paper>
+      )}
 
       {/* Timeline Indicator */}
       {timelineValue > 0 && (
@@ -441,13 +923,29 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
         zoomControl={true}
+        whenReady={() => {
+          setMapLoading(false)
+          setTimeout(() => setTilesLoading(false), 1500)
+        }}
       >
+        {/* Tile Loading Tracker */}
+        <TileLoadingTracker 
+          onLoadStart={() => setTilesLoading(true)}
+          onLoadComplete={() => setTilesLoading(false)}
+        />
+
         {/* Layer Control for different map styles */}
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="OpenStreetMap">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
+              minZoom={3}
+              keepBuffer={2}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
+              updateInterval={200}
             />
           </LayersControl.BaseLayer>
           
@@ -455,6 +953,11 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             <TileLayer
               attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={18}
+              minZoom={3}
+              keepBuffer={2}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
             />
           </LayersControl.BaseLayer>
 
@@ -462,6 +965,11 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+              maxZoom={17}
+              minZoom={3}
+              keepBuffer={2}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
             />
           </LayersControl.BaseLayer>
 
@@ -469,12 +977,28 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             <TileLayer
               attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
               url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+              maxZoom={19}
+              minZoom={3}
+              keepBuffer={2}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
 
-        {/* Heatmap Layer - Updates based on timeline */}
-        {showHeatmap && <HeatmapLayer points={displayFireLocations} timelineValue={timelineValue} />}
+        {/* Heatmap Layer - Animated transitions between risk layers */}
+        {showHeatmap && (
+          <>
+            <AnimatedHeatmapLayer 
+              points={displayFireLocations} 
+              timelineValue={timelineValue}
+              onTransitionChange={setHeatmapTransitioning}
+            />
+            {currentFrameData && (
+              <ProgressivePolygonLayer frameData={currentFrameData} />
+            )}
+          </>
+        )}
 
         {/* GREEN Risk Zones (Low Risk) */}
         {(displayRiskZones.green || []).map((zone) => (
@@ -544,7 +1068,39 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
           </Polygon>
         ))}
 
-        {/* Fire Location Markers with detailed popups */}
+        {/* Fire Location Markers with clustering */}
+        <SafeMarkerClusterGroup
+          chunkedLoading
+          iconCreateFunction={createClusterCustomIcon}
+          spiderfyOnMaxZoom={true}
+          showCoverageOnHover={false}
+          zoomToBoundsOnClick={true}
+          maxClusterRadius={60}
+          disableClusteringAtZoom={12}
+          spiderfyDistanceMultiplier={1.5}
+          animate={true}
+          animateAddingMarkers={true}
+          polygonOptions={{
+            fillColor: 'transparent',
+            color: 'transparent'
+          }}
+          eventHandlers={{
+            clustermouseover: (cluster) => {
+              const popupContent = createClusterPopupContent(cluster.layer)
+              cluster.layer.bindPopup(popupContent, {
+                maxWidth: 320,
+                className: 'cluster-popup'
+              })
+            },
+            clusterclick: (cluster) => {
+              const popupContent = createClusterPopupContent(cluster.layer)
+              cluster.layer.bindPopup(popupContent, {
+                maxWidth: 320,
+                className: 'cluster-popup'
+              }).openPopup()
+            }
+          }}
+        >
         {displayFireLocations.map((fire) => (
           <Marker 
             key={fire.id} 
@@ -653,9 +1209,10 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
             </Popup>
           </Marker>
         ))}
+        </SafeMarkerClusterGroup>
 
-        {/* Fire Hotspots - Hide by default, show only if needed */}
-        {false && PLACEHOLDER_FIRE_HOTSPOTS.map((hotspot) => (
+        {/* Fire Hotspots - optional debug layer */}
+        {showDebugLayers && PLACEHOLDER_FIRE_HOTSPOTS.map((hotspot) => (
           <Marker 
             key={hotspot.id} 
             position={hotspot.position}
@@ -689,8 +1246,8 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
           </Marker>
         ))}
 
-        {/* Location Markers - Hide by default to match design */}
-        {false && displayLocations.map((location) => (
+        {/* Location Markers - optional debug layer */}
+        {showDebugLayers && displayLocations.map((location) => (
           <CircleMarker
             key={location.id}
             center={[location.lat, location.lon]}
@@ -728,6 +1285,67 @@ function MapView({ selectedLocation, locations, riskZones, loading, selectedRegi
       </MapContainer>
     </Box>
   )
+}
+
+const coordinateArrayShape = PropTypes.arrayOf(
+  PropTypes.arrayOf(PropTypes.number)
+)
+
+const riskZoneShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  coordinates: coordinateArrayShape.isRequired,
+  riskLevel: PropTypes.string,
+  description: PropTypes.string,
+})
+
+const locationShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  region: PropTypes.string,
+  lat: PropTypes.number.isRequired,
+  lon: PropTypes.number.isRequired,
+  riskLevel: PropTypes.string,
+})
+
+const heatmapPointShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  position: PropTypes.arrayOf(PropTypes.number).isRequired,
+  riskScore: PropTypes.number,
+})
+
+TileLoadingTracker.propTypes = {
+  onLoadStart: PropTypes.func,
+  onLoadComplete: PropTypes.func,
+}
+
+AnimatedHeatmapLayer.propTypes = {
+  points: PropTypes.arrayOf(heatmapPointShape).isRequired,
+  timelineValue: PropTypes.number,
+  onTransitionChange: PropTypes.func,
+}
+
+MapView.propTypes = {
+  selectedLocation: PropTypes.shape({
+    name: PropTypes.string,
+    region: PropTypes.string,
+    lat: PropTypes.number,
+    lon: PropTypes.number,
+  }),
+  locations: PropTypes.arrayOf(locationShape),
+  riskZones: PropTypes.shape({
+    green: PropTypes.arrayOf(riskZoneShape),
+    yellow: PropTypes.arrayOf(riskZoneShape),
+    red: PropTypes.arrayOf(riskZoneShape),
+  }),
+  onLocationSelect: PropTypes.func,
+  timelineValue: PropTypes.number,
+  currentPrediction: PropTypes.shape({
+    risk: PropTypes.number,
+    spread: PropTypes.string,
+    direction: PropTypes.string,
+  }),
+  showDebugLayers: PropTypes.bool,
 }
 
 export default MapView

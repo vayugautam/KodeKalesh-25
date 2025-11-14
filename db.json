@@ -1,0 +1,148 @@
+{
+  "locations": [
+    {
+      "id": 1,
+      "name": "Station Alpha",
+      "latitude": 34.0522,
+      "longitude": -118.2437,
+      "risk_level": "High",
+      "humidity": 15,
+      "wind_speed": 25,
+      "temperature": 35
+    },
+    {
+      "id": 2,
+      "name": "Station Bravo",
+      "latitude": 36.1699,
+      "longitude": -115.1398,
+      "risk_level": "Medium",
+      "humidity": 25,
+      "wind_speed": 15,
+      "temperature": 30
+    },
+    {
+      "id": 3,
+      "name": "Station Charlie",
+      "latitude": 40.7128,
+      "longitude": -74.0060,
+      "risk_level": "Low",
+      "humidity": 50,
+      "wind_speed": 10,
+      "temperature": 25
+    },
+    {
+      "id": 4,
+      "name": "Station Delta",
+      "latitude": 34.5,
+      "longitude": -118.5,
+      "risk_level": "High",
+      "humidity": 12,
+      "wind_speed": 30,
+      "temperature": 38
+    },
+    {
+      "id": 5,
+      "name": "Station Echo",
+      "latitude": 35.5,
+      "longitude": -117.5,
+      "risk_level": "Very High",
+      "humidity": 8,
+      "wind_speed": 40,
+      "temperature": 42
+    }
+  ],
+  "riskZones": {
+    "green": [
+      {
+        "id": "green-west",
+        "name": "Safe Zone West",
+        "coordinates": [
+          [34.2, -119.0],
+          [34.4, -118.6],
+          [34.0, -118.2],
+          [33.8, -118.4]
+        ],
+        "riskLevel": "low",
+        "description": "Cool temperatures and higher humidity are keeping fire risk low."
+      }
+    ],
+    "yellow": [
+      {
+        "id": "yellow-central",
+        "name": "Monitoring Required",
+        "coordinates": [
+          [35.2, -118.4],
+          [35.4, -118.0],
+          [35.0, -117.6],
+          [34.8, -118.0]
+        ],
+        "riskLevel": "medium",
+        "description": "Rising temperatures and moderate winds could elevate risk."
+      },
+      {
+        "id": "yellow-north",
+        "name": "Moderate Risk",
+        "coordinates": [
+          [36.1, -115.4],
+          [36.3, -115.0],
+          [35.9, -114.8],
+          [35.7, -115.2]
+        ],
+        "riskLevel": "medium",
+        "description": "Lightning strikes reported in the past 24 hours."
+      }
+    ],
+    "red": [
+      {
+        "id": "red-socal",
+        "name": "Extreme Risk",
+        "coordinates": [
+          [34.1, -118.5],
+          [34.3, -118.1],
+          [33.9, -117.7],
+          [33.7, -118.1]
+        ],
+        "riskLevel": "high",
+        "description": "Strong Santa Ana winds with single-digit humidity."
+      },
+      {
+        "id": "red-desert",
+        "name": "Critical Risk",
+        "coordinates": [
+          [35.0, -117.8],
+          [35.2, -117.4],
+          [34.8, -117.0],
+          [34.6, -117.4]
+        ],
+        "riskLevel": "high",
+        "description": "Multiple active ignitions and rapid spread potential."
+      }
+    ]
+  },
+  "fireHotspots": [
+    {
+      "id": 100,
+      "name": "Foothill Ridge",
+      "position": [34.15, -118.35],
+      "intensity": "high",
+      "temperature": 46,
+      "detectedAt": "1 hour ago"
+    },
+    {
+      "id": 101,
+      "name": "Canyon Watch",
+      "position": [34.05, -118.15],
+      "intensity": "medium",
+      "temperature": 39,
+      "detectedAt": "3 hours ago"
+    },
+    {
+      "id": 102,
+      "name": "Ridgecrest",
+      "position": [35.62, -117.67],
+      "intensity": "high",
+      "temperature": 50,
+      "detectedAt": "30 minutes ago"
+    }
+  ]
+}
