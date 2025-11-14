@@ -29,7 +29,7 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { RISK_COLORS } from '../theme'
 import { useRiskAlerts } from '../hooks/useRisk'
-import { FixedSizeList as List } from 'react-window'
+import { FixedSizeList } from 'react-window'
 import { useSnackbar } from 'notistack'
 
 const FALLBACK_ALERTS = [
