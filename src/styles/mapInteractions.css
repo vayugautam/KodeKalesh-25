@@ -1,0 +1,341 @@
+/* Map Region Hover Micro-interactions */
+
+/* Polygon hover effects with smooth transitions */
+.leaflet-interactive {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.leaflet-interactive:hover {
+  filter: brightness(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  stroke-width: 3 !important;
+  transform: translateZ(0) scale(1.02);
+  z-index: 999 !important;
+}
+
+/* Animated tooltip for regions */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.leaflet-popup {
+  animation: tooltipFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card elevation on region hover */
+.region-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.region-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.region-card:hover::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, 
+    rgba(255, 255, 255, 0.1), 
+    rgba(255, 255, 255, 0.2));
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  50% {
+    opacity: 1;
+    filter: blur(12px);
+  }
+}
+
+/* Stats tooltip on hover */
+.region-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.region-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.region-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid rgba(0, 0, 0, 0.85);
+}
+
+/* Marker pulse animation on hover */
+.custom-fire-icon:hover {
+  animation: markerBounce 0.6s ease-in-out;
+}
+
+@keyframes markerBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.15);
+  }
+}
+
+/* Cluster hover effect */
+.custom-cluster-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.leaflet-marker-icon:hover .custom-cluster-icon {
+  transform: scale(1.1);
+}
+
+/* Enhance popup appearance */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Legend color gradient animation */
+.legend-item {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.legend-item:hover {
+  transform: translateX(4px);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  padding-left: 4px;
+}
+
+.legend-icon {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Animated gradient on color change */
+@keyframes colorShift {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(1.3) saturate(1.5);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+.legend-icon.color-changed {
+  animation: colorShift 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.legend-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.4), 
+    rgba(255, 255, 255, 0) 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.legend-item:hover .legend-icon::after {
+  opacity: 1;
+}
+
+/* Ripple effect on legend item click */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.legend-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.legend-item.ripple::before {
+  animation: ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth color transitions for all legend elements */
+.legend-zone-color,
+.legend-fire-color,
+.legend-circle-color {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: background-color, color, opacity;
+}
+
+/* Stagger animation for legend items on mount */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.legend-item:nth-child(1) { animation: slideInLeft 0.3s ease 0.05s backwards; }
+.legend-item:nth-child(2) { animation: slideInLeft 0.3s ease 0.1s backwards; }
+.legend-item:nth-child(3) { animation: slideInLeft 0.3s ease 0.15s backwards; }
+.legend-item:nth-child(4) { animation: slideInLeft 0.3s ease 0.2s backwards; }
+.legend-item:nth-child(5) { animation: slideInLeft 0.3s ease 0.25s backwards; }
+.legend-item:nth-child(6) { animation: slideInLeft 0.3s ease 0.3s backwards; }
+.legend-item:nth-child(7) { animation: slideInLeft 0.3s ease 0.35s backwards; }
+
+/* Gradient border pulse on active items */
+@keyframes gradientBorder {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.legend-item.active {
+  position: relative;
+}
+
+.legend-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 80%;
+  background: linear-gradient(180deg, 
+    rgba(25, 118, 210, 0.8), 
+    rgba(25, 118, 210, 0.2));
+  background-size: 200% 200%;
+  animation: gradientBorder 2s ease infinite;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Heatmap layer transition indicator */
+.heatmap-transition-indicator {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(25, 118, 210, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(25, 118, 210, 0.8);
+  }
+}
+
+/* Card micro-interaction on map region hover */
+.map-region-card {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.map-region-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.3), 
+    transparent);
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-region-card.hovered {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+}
+
+.map-region-card.hovered::before {
+  left: 100%;
+}
+
+/* Glow effect on hover */
+.map-region-card.hovered::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, 
+    rgba(76, 175, 80, 0.15), 
+    rgba(255, 152, 0, 0.15), 
+    rgba(244, 67, 54, 0.15));
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  border-radius: inherit;
+  z-index: -1;
+  filter: blur(8px);
+  opacity: 0.7;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}

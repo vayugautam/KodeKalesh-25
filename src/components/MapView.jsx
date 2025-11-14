@@ -4,18 +4,33 @@ import SafeMarkerClusterGroup from './SafeMarkerClusterGroup'
 import ProgressivePolygonLayer from './ProgressivePolygonLayer'
 import 'leaflet/dist/leaflet.css'
 import '../styles/markerCluster.css'
+import '../styles/mapInteractions.css'
 import L from 'leaflet'
-import { Box, Typography, Chip, Paper, Divider } from '@mui/material'
+import { Box, Typography, Chip, Paper, Divider, Stack, CircularProgress } from '@mui/material'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import WarningIcon from '@mui/icons-material/Warning'
 import ThermostatIcon from '@mui/icons-material/Thermostat'
 import WaterDropIcon from '@mui/icons-material/WaterDrop'
 import AirIcon from '@mui/icons-material/Air'
 import Schedule from '@mui/icons-material/Schedule'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import CloudIcon from '@mui/icons-material/Cloud'
+import OpacityIcon from '@mui/icons-material/Opacity'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import 'leaflet.heat'
 import { useHeatmapTransition } from '../hooks/useHeatmapTransition'
 import { useSimulationPrefetch } from '../hooks/useSimulationPrefetch'
+import { convertLatLonToXY, formatGridCoordinates, getGridCellBounds, GRID_CONFIG } from '../utils/gridUtils'
+import { useLocationWeather } from '../hooks/useLocationWeather'
+import { getWeatherDescription, calculateFireRisk } from '../utils/openMeteoApi'
+import { preparePayload, formatPayload } from '../utils/payloadUtils'
+import { callFirePredictionAPI } from '../utils/firePredictionClient'
+import { getGridCellsInBounds, batchPredictCells, animatePredictions, calculatePredictionStats } from '../utils/batchPrediction'
+import DrawControl from './DrawControl'
+import 'leaflet-draw/dist/leaflet.draw.css'
+import { fetchFIRMSHotspots, getBrightnessColor, formatHotspotDisplay } from '../utils/firmsApi'
+import PredictionSidebar from './PredictionSidebar'
+import { useToast } from '../hooks/useToast'
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -44,6 +59,34 @@ const fireIcon = new L.DivIcon({
   </div>`,
   iconSize: [24, 24],
   iconAnchor: [12, 12],
+})
+
+// Custom grid marker icon
+const gridMarkerIcon = new L.DivIcon({
+  className: 'custom-grid-marker',
+  html: `<div style="
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+    animation: markerDrop 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  ">
+    <span style="color: white; font-size: 16px; font-weight: bold;">📍</span>
+  </div>
+  <style>
+    @keyframes markerDrop {
+      0% { transform: translateY(-100px) scale(0); opacity: 0; }
+      70% { transform: translateY(5px) scale(1.1); }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+  </style>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 })
 
 // Custom cluster icon creator - dynamically sized based on cluster size
@@ -391,6 +434,50 @@ const PLACEHOLDER_RISK_ZONES = {
   ],
 }
 
+// Map Click Handler Component
+function MapClickHandler({ onMapClick, cellSizeKm }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!map || !onMapClick) return
+
+    const handleClick = (e) => {
+      const { lat, lng } = e.latlng
+      const gridData = convertLatLonToXY(lat, lng, cellSizeKm)
+      const bounds = getGridCellBounds(gridData.x, gridData.y, cellSizeKm)
+      
+      onMapClick({
+        x: gridData.x,
+        y: gridData.y,
+        lat,
+        lng,
+        centerLat: gridData.centerLat,
+        centerLon: gridData.centerLon,
+        gridLabel: formatGridCoordinates(gridData.x, gridData.y),
+        bounds: {
+          minLat: bounds.south,
+          maxLat: bounds.north,
+          minLon: bounds.west,
+          maxLon: bounds.east
+        }
+      })
+    }
+
+    map.on('click', handleClick)
+
+    return () => {
+      map.off('click', handleClick)
+    }
+  }, [map, onMapClick, cellSizeKm])
+
+  return null
+}
+
+MapClickHandler.propTypes = {
+  onMapClick: PropTypes.func,
+  cellSizeKm: PropTypes.number
+}
+
 // Tile Loading Tracker Component
 function TileLoadingTracker({ onLoadStart, onLoadComplete }) {
   const map = useMap()
@@ -589,6 +676,35 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
   const [tilesLoading, setTilesLoading] = useState(true)
   const [showAttribution, setShowAttribution] = useState(false)
   const [heatmapTransitioning, setHeatmapTransitioning] = useState(false)
+  const [regionTooltip, setRegionTooltip] = useState({ visible: false, x: 0, y: 0, content: '' })
+  const [clickedLocation, setClickedLocation] = useState(null)
+  const [gridCellSize, setGridCellSize] = useState(GRID_CONFIG.CELL_SIZE_KM) // 1.0 km default
+
+  // Fetch weather data for clicked location
+  const { weather, loading: weatherLoading, error: weatherError, refetch: refetchWeather } = useLocationWeather(clickedLocation)
+  
+  // Prepare API payload when weather is available
+  const [apiPayload, setApiPayload] = useState(null)
+  const [predictionResult, setPredictionResult] = useState(null)
+  const [predictionLoading, setPredictionLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // Toast notifications
+  const { showError, showSuccess, showInfo, ToastComponent } = useToast()
+  
+  // Batch prediction state
+  const [batchPredictions, setBatchPredictions] = useState([])
+  const [batchProgress, setBatchProgress] = useState(null)
+  const [animatingPredictions, setAnimatingPredictions] = useState(false)
+  const [drawnRectangle, setDrawnRectangle] = useState(null)
+  
+  // FIRMS hotspot state
+  const [firmsHotspots, setFirmsHotspots] = useState([])
+  const [showFirmsHotspots, setShowFirmsHotspots] = useState(false)
+  const [firmsLoading, setFirmsLoading] = useState(false)
 
   // Use API risk zones if available, otherwise use placeholder
   const displayRiskZones = riskZones || PLACEHOLDER_RISK_ZONES
@@ -657,6 +773,243 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
     if (score >= 0.5) return 'Medium Risk'
     return 'Low Risk'
   }
+
+  // Map API color to risk level for grid cell styling
+  const mapColorToRiskLevel = (color) => {
+    if (!color) return 'medium'
+    const colorLower = color.toLowerCase()
+    if (colorLower.includes('green') || colorLower === '#4caf50' || colorLower === '#008000') return 'low'
+    if (colorLower.includes('yellow') || colorLower === '#ffd54f' || colorLower === '#ffff00') return 'medium'
+    if (colorLower.includes('red') || colorLower === '#e57373' || colorLower === '#ff0000' || colorLower === '#f44336') return 'high'
+    return 'medium' // default
+  }
+
+  // Get grid cell style based on prediction result
+  const getGridCellStyle = (predictionData) => {
+    if (!predictionData || !predictionData.color) {
+      // Default style when no prediction
+      return {
+        color: '#2196f3',
+        fillColor: '#2196f3',
+        fillOpacity: 0.3,
+        weight: 2,
+        dashArray: '5, 5'
+      }
+    }
+
+    const riskLevel = mapColorToRiskLevel(predictionData.color)
+    const baseStyle = getZoneStyle(riskLevel)
+    
+    return {
+      ...baseStyle,
+      fillColor: predictionData.color,
+      color: predictionData.color,
+      fillOpacity: 0.6,
+      weight: 3,
+    }
+  }
+
+  const handleMapClick = (locationData) => {
+    setClickedLocation(locationData)
+    setSidebarOpen(true) // Open sidebar when location is clicked
+    console.log('🎯 Step 1: User clicked map at:', locationData)
+    console.log(`   Grid Cell: X=${locationData.x}, Y=${locationData.y}`)
+    console.log(`   Center: ${locationData.centerLat.toFixed(6)}°, ${locationData.centerLon.toFixed(6)}°`)
+    console.log('🔄 Step 2: Fetching weather data automatically...')
+    showInfo('Location selected. Fetching weather data...')
+  }
+
+  // Handle rectangle drawn
+  const handleRectangleCreated = async (e) => {
+    const layer = e.layer
+    const bounds = layer.getBounds()
+    
+    const rectangleBounds = {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest()
+    }
+
+    setDrawnRectangle(rectangleBounds)
+    console.log('Rectangle drawn:', rectangleBounds)
+
+    // Get all grid cells in the rectangle
+    const cells = getGridCellsInBounds(rectangleBounds, gridCellSize)
+    console.log(`Found ${cells.length} grid cells in rectangle`)
+
+    if (cells.length === 0) {
+      console.warn('No grid cells found in rectangle')
+      return
+    }
+
+    if (cells.length > 100) {
+      console.warn('Too many cells (>100). Please draw a smaller rectangle.')
+      return
+    }
+
+    // Use weather from clicked location or default
+    const weatherToUse = weather || {
+      temp: 30,
+      RH: 50,
+      wind: 10,
+      rain: 0
+    }
+
+    // Start batch prediction
+    setBatchProgress({ completed: 0, total: cells.length })
+    const results = []
+
+    try {
+      const batchResult = await batchPredictCells(cells, weatherToUse, {
+        concurrency: 3,
+        onProgress: (progress) => {
+          setBatchProgress({
+            completed: progress.completed,
+            total: progress.total
+          })
+          
+          if (progress.result) {
+            // Add prediction immediately for animation
+            results.push({
+              success: true,
+              cell: progress.current,
+              prediction: progress.result
+            })
+            setBatchPredictions(prev => [...prev, {
+              cell: progress.current,
+              prediction: progress.result
+            }])
+          }
+        },
+        stopOnError: false
+      })
+
+      console.log('Batch prediction complete:', batchResult.summary)
+      
+      // Calculate statistics
+      const stats = calculatePredictionStats(batchResult.predictions)
+      console.log('Prediction statistics:', stats)
+      
+      setBatchProgress(null)
+    } catch (error) {
+      console.error('Batch prediction error:', error)
+      setBatchProgress(null)
+    }
+  }
+
+  // Clear batch predictions when drawing deleted
+  const handleRectangleDeleted = () => {
+    setBatchPredictions([])
+    setDrawnRectangle(null)
+    setBatchProgress(null)
+    console.log('Rectangle deleted, cleared predictions')
+  }
+
+  // Handle update prediction button click
+  const handleUpdatePrediction = async () => {
+    if (!clickedLocation) return
+    
+    console.log('🔄 Manual update requested')
+    showInfo('Refreshing weather and prediction...')
+    
+    // Refetch weather data
+    await refetchWeather()
+    
+    // The useEffect hooks will automatically trigger payload generation
+    // and API call when weather updates
+  }
+
+  // Fetch FIRMS hotspots on mount
+  useEffect(() => {
+    const loadFIRMSData = async () => {
+      setFirmsLoading(true)
+      try {
+        const hotspots = await fetchFIRMSHotspots({
+          area: 'IND', // India
+          dayRange: 1,  // Last 24 hours
+          source: 'VIIRS_SNPP_NRT'
+        })
+        setFirmsHotspots(hotspots)
+        console.log(`Loaded ${hotspots.length} FIRMS hotspots`)
+      } catch (error) {
+        console.error('Failed to load FIRMS data:', error)
+      } finally {
+        setFirmsLoading(false)
+      }
+    }
+    
+    loadFIRMSData()
+  }, [])
+
+  // Prepare API payload when weather data is available
+  useEffect(() => {
+    if (weather && clickedLocation) {
+      const result = preparePayload({
+        X: clickedLocation.x,
+        Y: clickedLocation.y,
+        lat: clickedLocation.lat,
+        lng: clickedLocation.lng,
+        weather: {
+          temp: weather.temp,
+          RH: weather.RH,
+          wind: weather.wind,
+          rain: weather.rain
+        }
+      })
+      
+      if (result.valid) {
+        setApiPayload(result.payload)
+        console.log('✅ Step 3: API Payload prepared:', result.payload)
+      } else {
+        console.error('Payload validation failed:', result.errors)
+        setApiPayload(null)
+      }
+    } else {
+      setApiPayload(null)
+      setPredictionResult(null)
+    }
+  }, [weather, clickedLocation])
+
+  // Auto-call fire prediction API when payload is ready
+  useEffect(() => {
+    const callAPI = async () => {
+      if (!apiPayload) {
+        setPredictionResult(null)
+        return
+      }
+
+      console.log('🔄 Step 4: Calling Fire Prediction API...')
+      setPredictionLoading(true)
+      setPredictionResult(null)
+
+      try {
+        const response = await callFirePredictionAPI(apiPayload)
+        console.log('✅ Step 4 Complete: API Response:', response)
+        setPredictionResult(response)
+        setLastUpdated(Date.now())
+        showSuccess('Fire risk prediction updated successfully!')
+      } catch (error) {
+        console.error('❌ Step 4 Failed: API Error:', error)
+        
+        // Show error toast
+        showError('Prediction failed: ' + error.message)
+        
+        // Set fallback prediction with grey color
+        setPredictionResult({
+          score: null,
+          bucket: 'error',
+          color: '#9e9e9e', // Grey color for error state
+          features_used: ['API Error: ' + error.message]
+        })
+        setLastUpdated(Date.now())
+      } finally {
+        setPredictionLoading(false)
+      }
+    }
+
+    callAPI()
+  }, [apiPayload, showError, showSuccess])
 
   return (
     <Box sx={{ height: '100%', width: '100%', position: 'relative' }}>
@@ -817,6 +1170,436 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
         </Box>
       </Paper>
 
+      {/* Grid Cell Size Control */}
+      <Paper
+        sx={{
+          position: 'absolute',
+          top: 80,
+          right: 80,
+          zIndex: 1000,
+          p: 1.5,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          bgcolor: 'white',
+          boxShadow: 2,
+          minWidth: 180
+        }}
+      >
+        <Typography variant="body2" fontWeight={500}>
+          Grid Cell Size
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {[0.5, 1.0, 2.0].map(size => (
+            <Box
+              key={size}
+              component="button"
+              onClick={() => setGridCellSize(size)}
+              sx={{
+                bgcolor: gridCellSize === size ? 'primary.main' : 'grey.200',
+                color: gridCellSize === size ? 'white' : 'grey.700',
+                border: 'none',
+                borderRadius: 1,
+                px: 1.5,
+                py: 0.5,
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                transition: 'all 0.2s',
+                '&:hover': {
+                  bgcolor: gridCellSize === size ? 'primary.dark' : 'grey.300'
+                }
+              }}
+            >
+              {size} km
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+
+      {/* Clicked Location Info Panel */}
+      {clickedLocation && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            top: 160,
+            right: 80,
+            zIndex: 1000,
+            p: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.98)',
+            boxShadow: 3,
+            minWidth: 260,
+            maxWidth: 320,
+            borderLeft: 4,
+            borderColor: 'primary.main',
+            maxHeight: 'calc(100vh - 180px)',
+            overflowY: 'auto'
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+            <Typography variant="subtitle2" fontWeight={600} color="primary">
+              🔥 Fire Prediction Pipeline
+            </Typography>
+            <Box
+              component="button"
+              onClick={() => {
+                setClickedLocation(null)
+                setPredictionResult(null)
+                setApiPayload(null)
+              }}
+              sx={{
+                bgcolor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                color: 'text.secondary',
+                padding: 0,
+                minWidth: 'auto',
+                '&:hover': { color: 'error.main' }
+              }}
+              title="Clear selection"
+            >
+              ✕
+            </Box>
+          </Box>
+
+          {/* Pipeline Progress Indicator */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: 'success.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                ✓
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 1: Location Selected
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: weather && !weatherLoading ? 'success.main' : weatherLoading ? 'warning.main' : 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                {weatherLoading ? '...' : weather ? '✓' : '○'}
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 2: Weather Data {weatherLoading ? 'Loading...' : weather ? 'Ready' : 'Pending'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: apiPayload ? 'success.main' : 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                {apiPayload ? '✓' : '○'}
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 3: Payload {apiPayload ? 'Generated' : 'Pending'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: predictionResult && !predictionLoading ? 'success.main' : predictionLoading ? 'warning.main' : 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                {predictionLoading ? '...' : predictionResult ? '✓' : '○'}
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 4: ML Prediction {predictionLoading ? 'Loading...' : predictionResult ? 'Complete' : 'Pending'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: predictionResult ? 'success.main' : 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                {predictionResult ? '✓' : '○'}
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 5: Map Visualization {predictionResult ? 'Active' : 'Pending'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                borderRadius: '50%', 
+                bgcolor: 'success.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                ✓
+              </Box>
+              <Typography variant="caption" fontWeight={600}>
+                Step 6: Details Panel (This Panel!)
+              </Typography>
+            </Box>
+          </Box>
+
+          <Divider sx={{ my: 1.5 }} />
+          
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Grid Coordinates
+            </Typography>
+            <Typography variant="h6" fontWeight={700} fontFamily="monospace" color="primary.main">
+              X: {clickedLocation.x}, Y: {clickedLocation.y}
+            </Typography>
+          </Box>
+
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Click Position
+            </Typography>
+            <Typography variant="body2" fontSize="0.75rem" fontFamily="monospace">
+              {clickedLocation.lat.toFixed(6)}°, {clickedLocation.lng.toFixed(6)}°
+            </Typography>
+          </Box>
+
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Cell Center
+            </Typography>
+            <Typography variant="body2" fontSize="0.75rem" fontFamily="monospace">
+              {clickedLocation.centerLat.toFixed(6)}°, {clickedLocation.centerLon.toFixed(6)}°
+            </Typography>
+          </Box>
+
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Weather Data Section */}
+          <Box sx={{ mb: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                🌤️ Real-Time Weather
+              </Typography>
+              {!weatherLoading && (
+                <Box
+                  component="button"
+                  onClick={refetchWeather}
+                  sx={{
+                    bgcolor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'primary.main',
+                    '&:hover': { color: 'primary.dark' }
+                  }}
+                  title="Refresh weather"
+                >
+                  <RefreshIcon sx={{ fontSize: 16 }} />
+                </Box>
+              )}
+            </Box>
+            
+            {weatherLoading && (
+              <Box sx={{ py: 2, textAlign: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Loading weather data...
+                </Typography>
+              </Box>
+            )}
+
+            {weatherError && (
+              <Box sx={{ py: 1, px: 1.5, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
+                <Typography variant="caption" color="error.main">
+                  ⚠️ {weatherError}
+                </Typography>
+              </Box>
+            )}
+
+            {weather && !weatherLoading && (
+              <Box sx={{ bgcolor: 'background.paper', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Stack spacing={1}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ThermostatIcon sx={{ fontSize: 18, color: '#f44336' }} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {weather.temp !== null ? `${weather.temp.toFixed(1)}°C` : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Temperature
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <OpacityIcon sx={{ fontSize: 18, color: '#2196f3' }} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {weather.RH !== null ? `${weather.RH}%` : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Humidity
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AirIcon sx={{ fontSize: 18, color: '#607d8b' }} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {weather.wind !== null ? `${weather.wind.toFixed(1)} km/h` : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Wind Speed
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <WaterDropIcon sx={{ fontSize: 18, color: '#4caf50' }} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {weather.rain !== null ? `${weather.rain} mm` : '0 mm'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Rainfall
+                    </Typography>
+                  </Box>
+
+                  {weather.weatherCode !== undefined && (
+                    <Box sx={{ mt: 0.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <CloudIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {getWeatherDescription(weather.weatherCode)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </Stack>
+              </Box>
+            )}
+          </Box>
+
+          {/* API Payload Section */}
+          {apiPayload && (
+            <>
+              <Divider sx={{ my: 1.5 }} />
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
+                  📤 API Payload (Ready to Send)
+                </Typography>
+                <Box
+                  component="pre"
+                  sx={{
+                    bgcolor: '#e8f5e9',
+                    p: 1.5,
+                    borderRadius: 1,
+                    overflow: 'auto',
+                    fontSize: '0.65rem',
+                    fontFamily: 'monospace',
+                    border: '1px solid',
+                    borderColor: 'success.main',
+                    maxHeight: 200
+                  }}
+                >
+                  {formatPayload(apiPayload)}
+                </Box>
+                <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={`Month: ${apiPayload.month}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontSize: '0.65rem' }}
+                  />
+                  <Chip 
+                    label={`Day: ${apiPayload.day}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontSize: '0.65rem' }}
+                  />
+                </Box>
+              </Box>
+            </>
+          )}
+
+          <Divider sx={{ my: 1.5 }} />
+          
+          <Chip 
+            label={`${gridCellSize} km × ${gridCellSize} km grid`}
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: '0.7rem', fontWeight: 600 }}
+          />
+          
+          {/* FIRMS Hotspots Toggle */}
+          <Box sx={{ mt: 1.5 }}>
+            <Chip
+              label={showFirmsHotspots ? '🔥 Hide NASA VIIRS Hotspots' : '🛰️ Show NASA VIIRS Hotspots'}
+              size="small"
+              color={showFirmsHotspots ? 'error' : 'default'}
+              onClick={() => setShowFirmsHotspots(!showFirmsHotspots)}
+              sx={{ 
+                fontSize: '0.7rem', 
+                fontWeight: 600,
+                cursor: 'pointer',
+                '&:hover': {
+                  boxShadow: 2
+                }
+              }}
+            />
+            {firmsLoading && (
+              <Typography variant="caption" display="block" color="text.secondary" mt={0.5}>
+                Loading satellite data...
+              </Typography>
+            )}
+            {showFirmsHotspots && !firmsLoading && (
+              <Typography variant="caption" display="block" color="text.secondary" mt={0.5}>
+                {firmsHotspots.length} active fires detected (24h)
+              </Typography>
+            )}
+          </Box>
+        </Paper>
+      )}
+
       {/* Attribution Toggle Button */}
       <Paper
         sx={{
@@ -839,6 +1622,67 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
           ©
         </Typography>
       </Paper>
+
+      {/* Batch Prediction Progress */}
+      {batchProgress && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            top: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1002,
+            p: 2,
+            minWidth: 300,
+            bgcolor: 'rgba(255,255,255,0.98)',
+            boxShadow: 3,
+            borderLeft: '4px solid #2196f3'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CircularProgress size={32} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Analyzing Grid Cells...
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {batchProgress.completed} / {batchProgress.total} completed
+              </Typography>
+              <Box 
+                sx={{ 
+                  mt: 1,
+                  height: 6,
+                  bgcolor: '#e0e0e0',
+                  borderRadius: 3,
+                  overflow: 'hidden'
+                }}
+              >
+                <Box 
+                  sx={{
+                    height: '100%',
+                    bgcolor: '#2196f3',
+                    width: `${(batchProgress.completed / batchProgress.total) * 100}%`,
+                    transition: 'width 0.3s ease'
+                  }}
+                />
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Region Hover Tooltip */}
+      {regionTooltip.visible && (
+        <Box
+          className={`region-tooltip ${regionTooltip.visible ? 'visible' : ''}`}
+          sx={{
+            left: regionTooltip.x,
+            top: regionTooltip.y,
+          }}
+        >
+          {regionTooltip.content}
+        </Box>
+      )}
 
       {/* Attribution Panel */}
       {showAttribution && (
@@ -928,10 +1772,19 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
           setTimeout(() => setTilesLoading(false), 1500)
         }}
       >
+        {/* Map Click Handler */}
+        <MapClickHandler onMapClick={handleMapClick} cellSizeKm={gridCellSize} />
+
         {/* Tile Loading Tracker */}
         <TileLoadingTracker 
           onLoadStart={() => setTilesLoading(true)}
           onLoadComplete={() => setTilesLoading(false)}
+        />
+
+        {/* Drawing Controls for Rectangle Selection */}
+        <DrawControl
+          onRectangleCreated={handleRectangleCreated}
+          onRectangleDeleted={handleRectangleDeleted}
         />
 
         {/* Layer Control for different map styles */}
@@ -990,7 +1843,18 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
         {showHeatmap && (
           <>
             <AnimatedHeatmapLayer 
-              points={displayFireLocations} 
+              points={[
+                ...displayFireLocations,
+                // Add prediction point to heatmap if available
+                ...(predictionResult && clickedLocation ? [{
+                  id: 'prediction-point',
+                  position: [clickedLocation.centerLat, clickedLocation.centerLon],
+                  riskScore: predictionResult.score || 0.5,
+                  intensity: predictionResult.bucket === 'critical' ? 'high' : 
+                            predictionResult.bucket === 'high' ? 'high' :
+                            predictionResult.bucket === 'medium' ? 'medium' : 'low'
+                }] : [])
+              ]} 
               timelineValue={timelineValue}
               onTransitionChange={setHeatmapTransitioning}
             />
@@ -1006,6 +1870,30 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
             key={zone.id}
             positions={zone.coordinates}
             pathOptions={getZoneStyle('low')}
+            eventHandlers={{
+              mouseover: (e) => {
+                const layer = e.target;
+                layer.setStyle({ weight: 3, fillOpacity: 0.6 });
+                setRegionTooltip({
+                  visible: true,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60,
+                  content: `${zone.name} • Low Risk • Safe Zone`
+                });
+              },
+              mouseout: (e) => {
+                const layer = e.target;
+                layer.setStyle(getZoneStyle('low'));
+                setRegionTooltip({ visible: false, x: 0, y: 0, content: '' });
+              },
+              mousemove: (e) => {
+                setRegionTooltip(prev => ({
+                  ...prev,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60
+                }));
+              }
+            }}
           >
             <Popup>
               <Box>
@@ -1027,6 +1915,30 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
             key={zone.id}
             positions={zone.coordinates}
             pathOptions={getZoneStyle('medium')}
+            eventHandlers={{
+              mouseover: (e) => {
+                const layer = e.target;
+                layer.setStyle({ weight: 3, fillOpacity: 0.7 });
+                setRegionTooltip({
+                  visible: true,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60,
+                  content: `${zone.name} • Medium Risk • Monitor Conditions`
+                });
+              },
+              mouseout: (e) => {
+                const layer = e.target;
+                layer.setStyle(getZoneStyle('medium'));
+                setRegionTooltip({ visible: false, x: 0, y: 0, content: '' });
+              },
+              mousemove: (e) => {
+                setRegionTooltip(prev => ({
+                  ...prev,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60
+                }));
+              }
+            }}
           >
             <Popup>
               <Box>
@@ -1048,6 +1960,30 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
             key={zone.id}
             positions={zone.coordinates}
             pathOptions={getZoneStyle('high')}
+            eventHandlers={{
+              mouseover: (e) => {
+                const layer = e.target;
+                layer.setStyle({ weight: 3, fillOpacity: 0.8 });
+                setRegionTooltip({
+                  visible: true,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60,
+                  content: `⚠️ ${zone.name} • High Risk • Extreme Caution`
+                });
+              },
+              mouseout: (e) => {
+                const layer = e.target;
+                layer.setStyle(getZoneStyle('high'));
+                setRegionTooltip({ visible: false, x: 0, y: 0, content: '' });
+              },
+              mousemove: (e) => {
+                setRegionTooltip(prev => ({
+                  ...prev,
+                  x: e.originalEvent.pageX,
+                  y: e.originalEvent.pageY - 60
+                }));
+              }
+            }}
           >
             <Popup>
               <Box>
@@ -1211,6 +2147,327 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
         ))}
         </SafeMarkerClusterGroup>
 
+        {/* Batch Prediction Grid Cells */}
+        {batchPredictions.map((item, idx) => (
+          <Polygon
+            key={`batch-cell-${item.cell.x}-${item.cell.y}`}
+            positions={[
+              [item.cell.bounds.minLat, item.cell.bounds.minLon],
+              [item.cell.bounds.minLat, item.cell.bounds.maxLon],
+              [item.cell.bounds.maxLat, item.cell.bounds.maxLon],
+              [item.cell.bounds.maxLat, item.cell.bounds.minLon],
+            ]}
+            pathOptions={{
+              color: item.prediction.color || '#999',
+              fillColor: item.prediction.color || '#999',
+              fillOpacity: 0.5,
+              weight: 1.5,
+            }}
+          >
+            <Popup maxWidth={250}>
+              <Box sx={{ minWidth: 200 }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  Grid Cell ({item.cell.x}, {item.cell.y})
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                
+                <Box sx={{ mb: 1 }}>
+                  <Chip
+                    label={item.prediction.bucket?.toUpperCase() || 'UNKNOWN'}
+                    size="small"
+                    sx={{
+                      bgcolor: item.prediction.color || '#999',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                </Box>
+                
+                <Typography variant="body2" gutterBottom>
+                  <strong>Score:</strong> {item.prediction.score !== null 
+                    ? (item.prediction.score * 100).toFixed(1) + '%' 
+                    : 'N/A'}
+                </Typography>
+                
+                <Typography variant="caption" display="block" color="text.secondary">
+                  Lat: {item.cell.lat.toFixed(4)}°, Lon: {item.cell.lon.toFixed(4)}°
+                </Typography>
+              </Box>
+            </Popup>
+          </Polygon>
+        ))}
+
+        {/* Clicked Grid Cell Rectangle - colored based on API prediction */}
+        {clickedLocation && (
+          <>
+            <Polygon
+              positions={[
+                [clickedLocation.bounds.minLat, clickedLocation.bounds.minLon],
+                [clickedLocation.bounds.minLat, clickedLocation.bounds.maxLon],
+                [clickedLocation.bounds.maxLat, clickedLocation.bounds.maxLon],
+                [clickedLocation.bounds.maxLat, clickedLocation.bounds.minLon],
+              ]}
+              pathOptions={getGridCellStyle(predictionResult)}
+            />
+            
+            {/* Clicked Grid Location Marker */}
+            <Marker
+              position={[clickedLocation.centerLat, clickedLocation.centerLon]}
+              icon={gridMarkerIcon}
+            >
+            <Popup maxWidth={300}>
+              <Box sx={{ minWidth: 260 }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  📍 Selected Location
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Grid Coordinates
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} fontFamily="monospace">
+                    {clickedLocation.gridLabel}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    X: {clickedLocation.x} | Y: {clickedLocation.y}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Click Coordinates
+                  </Typography>
+                  <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+                    Lat: {clickedLocation.lat.toFixed(6)}°
+                  </Typography>
+                  <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+                    Lon: {clickedLocation.lng.toFixed(6)}°
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Grid Cell Center
+                  </Typography>
+                  <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+                    Lat: {clickedLocation.centerLat.toFixed(6)}°
+                  </Typography>
+                  <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+                    Lon: {clickedLocation.centerLon.toFixed(6)}°
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                {/* Fire Prediction Result */}
+                {predictionLoading && (
+                  <Box sx={{ mb: 1.5, textAlign: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="caption" display="block" color="text.secondary" mt={1}>
+                      Analyzing fire risk...
+                    </Typography>
+                  </Box>
+                )}
+
+                {predictionResult && !predictionLoading && (
+                  <Box sx={{ mb: 1.5, bgcolor: predictionResult.color || '#f5f5f5', p: 1.5, borderRadius: 1, border: `2px solid ${predictionResult.color || '#ccc'}` }}>
+                    <Typography variant="caption" fontWeight={700} display="block" mb={0.5} color="white" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                      🔥 FIRE RISK PREDICTION
+                    </Typography>
+                    
+                    <Box sx={{ bgcolor: 'white', p: 1, borderRadius: 0.5, mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          Risk Level:
+                        </Typography>
+                        <Chip
+                          label={predictionResult.bucket ? predictionResult.bucket.toUpperCase() : 'UNKNOWN'}
+                          size="small"
+                          sx={{
+                            bgcolor: predictionResult.color || '#999',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '0.7rem'
+                          }}
+                        />
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Prediction Score:
+                        </Typography>
+                        <Typography variant="body2" fontWeight={700}>
+                          {predictionResult.score !== null && predictionResult.score !== undefined 
+                            ? (predictionResult.score * 100).toFixed(1) + '%' 
+                            : 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {predictionResult.features_used && (
+                      <Box sx={{ bgcolor: 'rgba(255,255,255,0.9)', p: 0.75, borderRadius: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.25}>
+                          Key Factors:
+                        </Typography>
+                        <Typography variant="caption" fontSize="0.65rem" sx={{ lineHeight: 1.3 }}>
+                          {Array.isArray(predictionResult.features_used)
+                            ? predictionResult.features_used.join(', ')
+                            : typeof predictionResult.features_used === 'object'
+                            ? Object.entries(predictionResult.features_used).map(([k, v]) => `${k}: ${v}`).join(', ')
+                            : String(predictionResult.features_used)}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* Weather Data in Popup */}
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
+                    🌤️ Current Weather
+                  </Typography>
+                  
+                  {weatherLoading && (
+                    <Typography variant="caption" color="text.secondary">
+                      Loading...
+                    </Typography>
+                  )}
+
+                  {weatherError && (
+                    <Typography variant="caption" color="error.main" fontSize="0.7rem">
+                      ⚠️ Error loading weather
+                    </Typography>
+                  )}
+
+                  {weather && !weatherLoading && (
+                    <Box sx={{ bgcolor: '#f5f5f5', p: 1, borderRadius: 1, mt: 0.5 }}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="caption">
+                          🌡️ <strong>{weather.temp !== null ? `${weather.temp.toFixed(1)}°C` : 'N/A'}</strong>
+                        </Typography>
+                        <Typography variant="caption">
+                          💧 <strong>{weather.RH !== null ? `${weather.RH}%` : 'N/A'}</strong> RH
+                        </Typography>
+                        <Typography variant="caption">
+                          💨 <strong>{weather.wind !== null ? `${weather.wind.toFixed(1)} km/h` : 'N/A'}</strong>
+                        </Typography>
+                        <Typography variant="caption">
+                          ☔ <strong>{weather.rain !== null ? `${weather.rain} mm` : '0 mm'}</strong>
+                        </Typography>
+                      </Stack>
+                    </Box>
+                  )}
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+                <Chip 
+                  label={`Grid Size: ${gridCellSize} km`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              </Box>
+            </Popup>
+          </Marker>
+          </>
+        )}
+
+        {/* NASA FIRMS VIIRS Hotspots */}
+        {showFirmsHotspots && firmsHotspots.map((hotspot) => {
+          const displayData = formatHotspotDisplay(hotspot)
+          return (
+            <CircleMarker
+              key={hotspot.id}
+              center={hotspot.position}
+              radius={6}
+              pathOptions={{
+                fillColor: displayData.color,
+                fillOpacity: 0.8,
+                color: '#fff',
+                weight: 1
+              }}
+            >
+              <Popup maxWidth={280}>
+                <Box sx={{ minWidth: 240 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <LocalFireDepartmentIcon sx={{ color: displayData.color, fontSize: 24 }} />
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      NASA VIIRS Fire Detection
+                    </Typography>
+                  </Box>
+
+                  <Divider sx={{ mb: 1.5 }} />
+
+                  {/* Location */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      📍 Location
+                    </Typography>
+                    <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+                      {displayData.location}
+                    </Typography>
+                  </Box>
+
+                  {/* Detection Time */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      🕐 Detection Time
+                    </Typography>
+                    <Typography variant="body2" fontSize="0.8rem">
+                      {displayData.datetime}
+                    </Typography>
+                  </Box>
+
+                  {/* Brightness Temperature */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      🌡️ Brightness Temperature
+                    </Typography>
+                    <Typography variant="h6" fontWeight={600} color={displayData.color}>
+                      {displayData.brightness}
+                    </Typography>
+                  </Box>
+
+                  {/* Confidence Level */}
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                      ✓ Confidence Level
+                    </Typography>
+                    <Chip
+                      label={displayData.confidence.toUpperCase()}
+                      size="small"
+                      sx={{
+                        bgcolor: displayData.confidenceColor,
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    />
+                  </Box>
+
+                  {/* Fire Radiative Power */}
+                  {hotspot.frp && (
+                    <Box sx={{ mb: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        ⚡ Fire Radiative Power
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {displayData.frp}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Divider sx={{ my: 1 }} />
+
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Source: NASA FIRMS VIIRS
+                  </Typography>
+                </Box>
+              </Popup>
+            </CircleMarker>
+          )
+        })}
+
         {/* Fire Hotspots - optional debug layer */}
         {showDebugLayers && PLACEHOLDER_FIRE_HOTSPOTS.map((hotspot) => (
           <Marker 
@@ -1283,6 +2540,23 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
           </CircleMarker>
         ))}
       </MapContainer>
+
+      {/* Prediction Sidebar */}
+      <PredictionSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        locationData={clickedLocation}
+        weather={weather}
+        weatherLoading={weatherLoading}
+        weatherError={weatherError}
+        predictionResult={predictionResult}
+        predictionLoading={predictionLoading}
+        onUpdatePrediction={handleUpdatePrediction}
+        lastUpdated={lastUpdated}
+      />
+
+      {/* Toast Notifications */}
+      <ToastComponent />
     </Box>
   )
 }

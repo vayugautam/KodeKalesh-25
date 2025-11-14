@@ -122,6 +122,122 @@ RISK_COLORS = {
 - **No API Key Required**
 - **Free Tier:** 10,000 calls/day
 
+### Forest Fire ML Model API
+
+**ML Model Repository:** [ag21o9/ForestFireMLModel](https://github.com/ag21o9/ForestFireMLModel)
+
+This application integrates with a machine learning model for fire risk prediction developed by [@ag21o9](https://github.com/ag21o9).
+
+#### API Endpoint
+```
+POST https://forestfiremlmodel.onrender.com/predict
+```
+
+#### Request Schema
+```json
+{
+  "X": 890,           // Grid cell X coordinate
+  "Y": 500,           // Grid cell Y coordinate
+  "temp": 28.5,       // Temperature in °C
+  "RH": 65,           // Relative Humidity (%)
+  "wind": 12.3,       // Wind speed (km/h)
+  "rain": 0,          // Precipitation (mm)
+  "month": 5,         // Month (1-12)
+  "day": 15           // Day of month (1-31)
+}
+```
+
+#### Response Schema
+```json
+{
+  "score": 0.753,                    // Prediction score (0-1)
+  "bucket": "high",                  // Risk level: low|medium|high|critical
+  "color": "#ff9800",                // Hex color for visualization
+  "features_used": ["temp", "RH", "wind"]  // Key contributing factors
+}
+```
+
+#### Example cURL Command
+```bash
+curl -X POST https://forestfiremlmodel.onrender.com/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "X": 890,
+    "Y": 500,
+    "temp": 32.5,
+    "RH": 45,
+    "wind": 15.2,
+    "rain": 0,
+    "month": 5,
+    "day": 20
+  }'
+```
+
+#### Error Handling
+
+**400 Bad Request** - Invalid payload
+```json
+{
+  "error": "Validation failed",
+  "details": {
+    "temp": "Temperature is required",
+    "RH": "Humidity must be between 0 and 100"
+  }
+}
+```
+
+**500 Internal Server Error** - Model prediction failure
+```json
+{
+  "error": "Prediction failed",
+  "message": "Internal server error"
+}
+```
+
+**Network Timeout** - Request timeout after 30 seconds
+```javascript
+// The client automatically retries with exponential backoff
+// (1s, 2s, 4s delays between 3 attempts)
+```
+
+#### Integration Example
+
+```javascript
+import { callFirePredictionAPI } from './utils/firePredictionClient'
+
+// Prepare payload
+const payload = {
+  X: 890,
+  Y: 500,
+  temp: weather.temp,
+  RH: weather.RH,
+  wind: weather.wind,
+  rain: weather.rain,
+  month: new Date().getMonth() + 1,
+  day: new Date().getDate()
+}
+
+// Call API with automatic error handling
+try {
+  const result = await callFirePredictionAPI(payload)
+  console.log('Prediction:', result)
+  // result = { score: 0.65, bucket: "medium", color: "#fdd835", features_used: [...] }
+} catch (error) {
+  console.error('Prediction failed:', error.message)
+  // Fallback to default risk level
+}
+```
+
+#### Client Features
+- ✅ Automatic retry with exponential backoff (3 attempts)
+- ✅ 30-second timeout protection
+- ✅ Comprehensive error handling (400, 500, timeout, network)
+- ✅ Response validation and formatting
+- ✅ Batch prediction support (concurrent requests)
+- ✅ Health check endpoint monitoring
+
+See `src/utils/firePredictionClient.js` for full implementation.
+
 ### Dummy Data Files (for Backend Integration)
 - `public/data/fireLocations.json` - 6 active fire locations
 - `public/data/riskZones.json` - 8 risk zones (2 low, 3 medium, 3 high)

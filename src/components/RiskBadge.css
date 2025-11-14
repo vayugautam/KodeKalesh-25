@@ -1,0 +1,213 @@
+/* Risk Badge Animations */
+
+/* Base risk badge styling */
+.risk-badge {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Critical level - Pulsating shadow animation */
+@keyframes pulsateShadow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(211, 47, 47, 0.4),
+                0 0 16px rgba(211, 47, 47, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(211, 47, 47, 0.6),
+                0 0 24px rgba(211, 47, 47, 0.3),
+                0 0 32px rgba(211, 47, 47, 0.1);
+  }
+}
+
+/* Critical level - Heartbeat scale animation */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  10% {
+    transform: scale(1.08);
+  }
+  20% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.08);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* High level - Gentle pulse */
+@keyframes gentlePulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(244, 67, 54, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(244, 67, 54, 0.5);
+  }
+}
+
+/* Medium level - Subtle glow */
+@keyframes subtleGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(255, 152, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+  }
+}
+
+/* Apply animations only when motion is NOT reduced */
+@media (prefers-reduced-motion: no-preference) {
+  .risk-badge-critical {
+    animation: pulsateShadow 2s ease-in-out infinite,
+               heartbeat 2s ease-in-out infinite;
+  }
+
+  .risk-badge-high {
+    animation: gentlePulse 3s ease-in-out infinite;
+  }
+
+  .risk-badge-medium {
+    animation: subtleGlow 4s ease-in-out infinite;
+  }
+
+  /* Hover effects for interactive badges */
+  .risk-badge:hover {
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  .risk-badge-critical:hover {
+    animation: pulsateShadow 1s ease-in-out infinite,
+               heartbeat 1s ease-in-out infinite;
+  }
+}
+
+/* Reduced motion fallback - static shadows */
+@media (prefers-reduced-motion: reduce) {
+  .risk-badge-critical {
+    box-shadow: 0 0 12px rgba(211, 47, 47, 0.5),
+                0 0 20px rgba(211, 47, 47, 0.25);
+  }
+
+  .risk-badge-high {
+    box-shadow: 0 0 8px rgba(244, 67, 54, 0.4);
+  }
+
+  .risk-badge-medium {
+    box-shadow: 0 0 6px rgba(255, 152, 0, 0.3);
+  }
+
+  .risk-badge-low {
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.2);
+  }
+
+  /* Disable all animations */
+  .risk-badge,
+  .risk-badge-critical,
+  .risk-badge-high,
+  .risk-badge-medium,
+  .risk-badge-low {
+    animation: none !important;
+  }
+
+  /* Allow only simple hover effects */
+  .risk-badge:hover {
+    transform: none;
+    opacity: 0.9;
+  }
+}
+
+/* Focus styles for accessibility */
+.risk-badge:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Icon animation within badge */
+@keyframes iconPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .risk-badge-critical .MuiChip-icon {
+    animation: iconPulse 2s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .risk-badge-critical .MuiChip-icon {
+    animation: none;
+  }
+}
+
+/* Stagger animation for multiple badges */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .risk-badge {
+    animation: fadeInUp 0.4s ease backwards;
+  }
+
+  .risk-badge:nth-child(1) { animation-delay: 0.05s; }
+  .risk-badge:nth-child(2) { animation-delay: 0.1s; }
+  .risk-badge:nth-child(3) { animation-delay: 0.15s; }
+  .risk-badge:nth-child(4) { animation-delay: 0.2s; }
+}
+
+/* Active/pressed state */
+.risk-badge:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .risk-badge:active {
+    transform: none;
+    opacity: 0.8;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .risk-badge {
+    border-width: 3px !important;
+  }
+
+  .risk-badge-critical {
+    background-color: rgba(211, 47, 47, 0.3) !important;
+  }
+
+  .risk-badge-high {
+    background-color: rgba(244, 67, 54, 0.2) !important;
+  }
+}
+
+/* Print styles - remove animations */
+@media print {
+  .risk-badge,
+  .risk-badge-critical,
+  .risk-badge-high,
+  .risk-badge-medium,
+  .risk-badge-low {
+    animation: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}

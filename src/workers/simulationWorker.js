@@ -1,8 +1,4 @@
-/*
- * Web Worker for simulation frame computation.
- * Receives messages with { frameIndex, payload } and responds with
- * { frameIndex, polygonsLowRes, polygonsHighRes, metadata }.
- */
+
 self.onmessage = async event => {
   const { frameIndex, payload } = event.data || {}
   if (typeof frameIndex !== 'number') {
@@ -19,7 +15,6 @@ self.onmessage = async event => {
 }
 
 function computeSimulationFrame(frameIndex, payload) {
-  // Placeholder: simulate heavy computation
   const seed = frameIndex + (payload?.seedOffset || 0)
   const lowRes = generatePolygons(seed, 8)
   const highRes = generatePolygons(seed, 24)
