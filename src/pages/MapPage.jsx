@@ -4,10 +4,9 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
 import MapView from '../components/MapView'
 import ErrorBoundary from '../components/ErrorBoundary'
-import Sidebar from '../components/Sidebar'
 import RightSidebar from '../components/RightSidebar'
 import WeatherInfoPanel from '../components/WeatherInfoPanel'
-import { SidebarSkeleton, RightSidebarSkeleton } from '../components/LoadingSkeletons'
+import { RightSidebarSkeleton } from '../components/LoadingSkeletons'
 import { useLocations } from '../hooks/useLocations'
 import { useRiskZones } from '../hooks/useRisk'
 import { useOpenMeteoWeather } from '../hooks/useOpenMeteoWeather'
@@ -17,8 +16,6 @@ import { buildPredictionPayload, requestFirePrediction } from '../utils/firePred
 function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
-  const [selectedRegion, setSelectedRegion] = useState('India')
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [timelineValue, setTimelineValue] = useState(0)
   const [timelinePrediction, setTimelinePrediction] = useState(null)
   const [modelPrediction, setModelPrediction] = useState(null)
@@ -107,7 +104,7 @@ function MapPage() {
           windSpeed: weatherData.current.windSpeed,
           rain: weatherData.daily?.precipitation_sum?.[0] ?? 0,
         },
-        date: selectedDate,
+        date: new Date().toISOString().split('T')[0],
       })
 
       setLastPredictionRequest(payload)
@@ -174,21 +171,6 @@ function MapPage() {
   return (
     <Box sx={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden', bgcolor: '#f5f5f5' }}>
       <CssBaseline />
-      
-      {/* Left Sidebar */}
-      {isInitialLoad ? (
-        <Box sx={{ width: 400, borderRight: '1px solid #e0e0e0', bgcolor: 'white' }}>
-          <SidebarSkeleton />
-        </Box>
-      ) : (
-        <Sidebar 
-          onFetchPrediction={handleFetchPrediction}
-          selectedRegion={selectedRegion}
-          setSelectedRegion={setSelectedRegion}
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-        />
-      )}
       
       {/* Main Map Container */}
       <Box 
