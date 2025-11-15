@@ -38,6 +38,17 @@ public/
 - **jsPDF + html2canvas** - PDF export and screenshots
 - **Axios** - HTTP client
 
+## 📊 Data & Feature Inputs
+
+- **Kaggle Dataset – Algerian Forest Fires** (baseline historical training data)
+- **Live Weather Signals** sourced via Open-Meteo (temperature, humidity, wind speed, rainfall)
+- **Humidity & Wind Speed Emphasis** for rapid fire-propagation detection
+- **Computed Fire Weather Indices (FWI)**: FFMC, DMC, DC, ISI
+- **Geospatial Context**: grid coordinates `(X, Y)` captured from the interactive map
+- **Temporal Features**: current month and day
+
+These inputs feed the ML pipeline to estimate the probability of a fire ignition event for “today.”
+
 ## 📦 Installation
 
 ```bash
@@ -132,6 +143,55 @@ RISK_COLORS = {
 - **Endpoint:** `https://api.open-meteo.com/v1/forecast`
 - **No API Key Required**
 - **Free Tier:** 10,000 calls/day
+
+## 🧭 System Architecture Overview
+
+```
+[Open-Meteo]      [NASA FIRMS (VIIRS)]         [Optional APIs]
+  |                   |                            |
+  |                   |                            |
+  +------(weather)----+                            |
+          |                            |
+         [Frontend (React + Leaflet)] <--+
+          |  (user selects region)
+          |
+        (POST weather + location)
+          |
+        [Render/Flask API]
+        /        |        \
+      (fetch VIIRS)  (estimate FWI)  (call ML model)
+       |             |               |
+       +-----[Feature Engine]--------+
+           |
+       [RandomForest Model (.pkl)]
+           |
+           prediction
+           |
+        JSON {score, bucket, color, features}
+           |
+        [Frontend] → UI + heatmap
+           |
+         [Hosted on Vercel]
+```
+
+The pipeline fuses live weather, satellite VIIRS readings, and derived Fire Weather Index metrics, then serves predictions through a RandomForest model exposed via the backend API.
+
+## 🎯 Prediction Use Case
+
+- **Objective:** Predict today’s probability of a forest fire for the selected grid cell/region.
+- **Primary Inputs:**
+  - Live temperature, humidity (RH), wind speed, and rainfall
+  - FFMC, DMC, DC, ISI dryness indexes computed by the backend feature engine
+  - Grid coordinates `(X, Y)` coming from the map selection
+  - Temporal context (current month and day of month)
+- **Output:** `{ score, bucket, color, top_features }` JSON payload powering risk badges, alerts, and map overlays.
+- **Classes:** Model differentiates between `Fire` vs `Not Fire` scenarios to set the severity bucket.
+
+## 🤖 Model Performance
+
+- **Architecture:** Ensemble learning stack centered on a Random Forest Classifier
+- **Accuracy:** `0.97` test accuracy on the Algerian Forest Fires benchmark split
+- **Rationale:** Random Forest handles mixed meteorological + index features, reduces overfitting through bagging, and gives feature importance for explainability in the UI.
 
 ### Forest Fire ML Model API
 
