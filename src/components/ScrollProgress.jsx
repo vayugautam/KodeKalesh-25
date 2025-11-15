@@ -6,16 +6,16 @@ const ScrollProgress = () => {
 
   useEffect(() => {
     const updateScrollProgress = () => {
-      const scrollPx = document.documentElement.scrollTop
+      const scrollPx = window.pageYOffset || document.documentElement.scrollTop
       const winHeightPx =
         document.documentElement.scrollHeight -
         document.documentElement.clientHeight
-      const scrolled = (scrollPx / winHeightPx) * 100
+      const scrolled = winHeightPx > 0 ? (scrollPx / winHeightPx) * 100 : 0
 
       setScrollProgress(scrolled)
     }
 
-    window.addEventListener('scroll', updateScrollProgress)
+    window.addEventListener('scroll', updateScrollProgress, { passive: true })
     updateScrollProgress() // Initial call
 
     return () => {

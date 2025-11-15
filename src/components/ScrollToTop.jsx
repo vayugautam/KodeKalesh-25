@@ -7,14 +7,16 @@ const ScrollToTop = ({ threshold = 300 }) => {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.pageYOffset > threshold) {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop
+      if (scrollY > threshold) {
         setIsVisible(true)
       } else {
         setIsVisible(false)
       }
     }
 
-    window.addEventListener('scroll', toggleVisibility)
+    window.addEventListener('scroll', toggleVisibility, { passive: true })
+    toggleVisibility() // Initial check
 
     return () => {
       window.removeEventListener('scroll', toggleVisibility)

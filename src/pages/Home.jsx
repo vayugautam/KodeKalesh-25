@@ -75,7 +75,7 @@ const CHECKLIST = [
 
 function Home() {
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4, pb: 8 }}>
       {/* Hero Section */}
       <Paper
         id="hero"
