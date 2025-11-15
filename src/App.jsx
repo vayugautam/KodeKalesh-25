@@ -23,18 +23,13 @@ import './App.css'
 import './styles/accessibility.css'
 import './styles/smoothScroll.css'
 
-function AppContent() {
+// Component with Router context
+function RouterContent() {
   const searchInputRef = useRef(null)
   const mainContentRef = useRef(null)
 
-  // Enable keyboard shortcuts
+  // Enable keyboard shortcuts (must be inside Router)
   useKeyboardShortcuts()
-
-  // React Router future flags configuration
-  const routerFutureFlags = {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true
-  }
 
   // Track keyboard vs mouse usage for accessibility
   useEffect(() => {
@@ -73,6 +68,72 @@ function AppContent() {
   }, [])
 
   return (
+    <>
+      {/* Skip to main content link for accessibility */}
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
+
+      <div className="app-shell">
+        {/* Fixed Header */}
+        <header className="app-header" role="banner" aria-label="Main navigation">
+          <Navbar />
+          <ScrollProgress />
+        </header>
+
+        {/* Main Content Area */}
+        <main 
+          id="main-content"
+          ref={mainContentRef}
+          className="app-main scroll-target"
+          role="main"
+          aria-label="Main content"
+          tabIndex={-1}
+        >
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/map" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
+            <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          </Routes>
+        </main>
+
+        {/* Footer */}
+        <footer 
+          className="app-footer"
+          role="contentinfo"
+          aria-label="Footer"
+        >
+          <Footer />
+        </footer>
+
+        {/* Scroll to Top Button */}
+        <ScrollToTop />
+
+        {/* Welcome Tour */}
+        <WelcomeTour />
+
+        {/* Notification Center */}
+        <NotificationCenter />
+
+        {/* Safety Tips Panel */}
+        <SafetyTipsPanel />
+      </div>
+    </>
+  )
+}
+
+function App() {
+  // React Router future flags configuration
+  const routerFutureFlags = {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+
+  return (
     <ThemeProvider theme={theme}>
       <SnackbarProvider
         maxSnack={3}
@@ -82,68 +143,10 @@ function AppContent() {
       >
         <CssBaseline />
         <Router future={routerFutureFlags}>
-          {/* Skip to main content link for accessibility */}
-          <a href="#main-content" className="skip-to-main">
-            Skip to main content
-          </a>
-
-        <div className="app-shell">
-          {/* Fixed Header */}
-          <header className="app-header" role="banner" aria-label="Main navigation">
-            <Navbar />
-            <ScrollProgress />
-          </header>
-
-          {/* Main Content Area */}
-          <main 
-            id="main-content"
-            ref={mainContentRef}
-            className="app-main scroll-target"
-            role="main"
-            aria-label="Main content"
-            tabIndex={-1}
-          >
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/map" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
-              <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            </Routes>
-          </main>
-
-          {/* Footer */}
-          <footer 
-            className="app-footer"
-            role="contentinfo"
-            aria-label="Footer"
-          >
-            <Footer />
-          </footer>
-
-          {/* Scroll to Top Button */}
-          <ScrollToTop />
-
-          {/* Welcome Tour */}
-          <WelcomeTour />
-
-          {/* Notification Center */}
-          <NotificationCenter />
-
-          {/* Safety Tips Panel */}
-          <SafetyTipsPanel />
-        </div>
-      </Router>
+          <RouterContent />
+        </Router>
       </SnackbarProvider>
     </ThemeProvider>
-  )
-}
-
-function App() {
-  return (
-    <AppContent />
   )
 }
 
