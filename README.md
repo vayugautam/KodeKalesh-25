@@ -1,6 +1,17 @@
-# Forest Fire Prediction Dashboard
+# FireGuard AI
 
-A modern React application for real-time forest fire prediction and monitoring, featuring interactive maps, weather integration, and risk assessment.
+**Predicting Fires Before They Spread**
+
+A modern React application for real-time forest fire prediction and monitoring, featuring interactive maps, weather integration, and AI-powered risk assessment.
+
+## 👥 Team - FarmFusion
+
+This project was developed by **Team FarmFusion**:
+
+- **Divya Ratna Gautam** - Team Lead and Frontend Developer
+- **Arvind Singh** - Backend Developer  
+- **Ayush Singh** - Logistics, Research, and Frontend
+- **Abhijeet Gupta** - ML Developer
 
 ## 📁 Project Structure
 
@@ -328,4 +339,4 @@ MIT
 
 ---
 
-**Built with ❤️ using React + Vite**
+**Built with ❤️ by Team FarmFusion using React + Vite**
