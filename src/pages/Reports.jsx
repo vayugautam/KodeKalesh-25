@@ -50,7 +50,7 @@ function Reports() {
   ]
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, pb: 8 }}>
+    <Container maxWidth="xl" sx={{ py: 4, pb: 8, minHeight: '150vh' }}>
       <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, mb: 4, borderRadius: 3, backgroundColor: '#f3f6fb' }}>
         <Stack spacing={2}>
           <Typography variant="h4" fontWeight={700}>
