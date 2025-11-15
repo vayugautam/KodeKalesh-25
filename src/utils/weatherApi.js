@@ -106,7 +106,7 @@ export const riskService = {
 
   // Get all active risk zones
   getRiskZones: async () => {
-    const response = await weatherApi.get('/riskZones')
+    const response = await weatherApi.get('/risk/zones')
     return response.data
   },
 
@@ -126,7 +126,7 @@ export const riskService = {
 
   // Get fire hotspots
   getFireHotspots: async () => {
-    const response = await weatherApi.get('/fireHotspots')
+    const response = await weatherApi.get('/risk/fire-hotspots')
     return response.data
   },
 }
