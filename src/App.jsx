@@ -9,6 +9,10 @@ import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
 import ScrollToTop from './components/ScrollToTop'
 import ScrollProgress from './components/ScrollProgress'
+import WelcomeTour from './components/WelcomeTour'
+import NotificationCenter from './components/NotificationCenter'
+import SafetyTipsPanel from './components/SafetyTipsPanel'
+import useKeyboardShortcuts from './hooks/useKeyboardShortcuts'
 import MapPage from './pages/MapPage'
 import Home from './pages/Home'
 import Alerts from './pages/Alerts'
@@ -19,9 +23,12 @@ import './App.css'
 import './styles/accessibility.css'
 import './styles/smoothScroll.css'
 
-function App() {
+function AppContent() {
   const searchInputRef = useRef(null)
   const mainContentRef = useRef(null)
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts()
 
   // React Router future flags configuration
   const routerFutureFlags = {
@@ -118,10 +125,25 @@ function App() {
 
           {/* Scroll to Top Button */}
           <ScrollToTop />
+
+          {/* Welcome Tour */}
+          <WelcomeTour />
+
+          {/* Notification Center */}
+          <NotificationCenter />
+
+          {/* Safety Tips Panel */}
+          <SafetyTipsPanel />
         </div>
       </Router>
       </SnackbarProvider>
     </ThemeProvider>
+  )
+}
+
+function App() {
+  return (
+    <AppContent />
   )
 }
 
