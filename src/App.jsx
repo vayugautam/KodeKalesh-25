@@ -7,6 +7,8 @@ import theme from './theme'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
+import ScrollToTop from './components/ScrollToTop'
+import ScrollProgress from './components/ScrollProgress'
 import MapPage from './pages/MapPage'
 import Home from './pages/Home'
 import Alerts from './pages/Alerts'
@@ -82,6 +84,7 @@ function App() {
           {/* Fixed Header */}
           <header className="app-header" role="banner" aria-label="Main navigation">
             <Navbar />
+            <ScrollProgress />
           </header>
 
           {/* Main Content Area */}
@@ -112,6 +115,9 @@ function App() {
           >
             <Footer />
           </footer>
+
+          {/* Scroll to Top Button */}
+          <ScrollToTop />
         </div>
       </Router>
       </SnackbarProvider>

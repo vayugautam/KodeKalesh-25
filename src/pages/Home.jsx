@@ -76,7 +76,9 @@ const CHECKLIST = [
 function Home() {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Hero Section */}
       <Paper
+        id="hero"
         elevation={0}
         sx={{
           mb: 4,
@@ -84,6 +86,7 @@ function Home() {
           borderRadius: 3,
           background: 'linear-gradient(135deg, #0d47a1 0%, #1976d2 60%, #42a5f5 100%)',
           color: 'white',
+          scrollMarginTop: '80px',
         }}
       >
         <Stack spacing={3}>
@@ -129,7 +132,8 @@ function Home() {
         </Stack>
       </Paper>
 
-      <Grid container spacing={3}>
+      {/* Statistics Section */}
+      <Grid container spacing={3} id="statistics" sx={{ scrollMarginTop: '80px' }}>
         {STAT_CARDS.map(card => (
           <Grid item xs={12} sm={6} md={3} key={card.label}>
             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
@@ -164,7 +168,8 @@ function Home() {
         ))}
       </Grid>
 
-      <Grid container spacing={3} sx={{ mt: 1 }}>
+      {/* Dashboard Section */}
+      <Grid container spacing={3} sx={{ mt: 1 }} id="dashboard">
         <Grid item xs={12} lg={8}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
@@ -208,7 +213,8 @@ function Home() {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3} sx={{ mt: 0 }}>
+      {/* Activity Section */}
+      <Grid container spacing={3} sx={{ mt: 0 }} id="activity">
         <Grid item xs={12} lg={7}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -264,7 +270,8 @@ function Home() {
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: 3 }}>
+      {/* Map Section */}
+      <Box sx={{ mt: 3 }} id="map-preview">
         <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} gutterBottom>
             Live Observation Map
