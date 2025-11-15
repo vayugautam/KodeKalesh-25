@@ -20,12 +20,15 @@ function Footer() {
         <Grid container spacing={4}>
           {/* About Section */}
           <Grid item xs={12} sm={6} md={4}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <LocalFireDepartmentIcon sx={{ fontSize: 28, color: '#ff5722' }} />
               <Typography variant="h6" fontWeight="bold">
                 FireGuard AI
               </Typography>
             </Box>
+            <Typography variant="caption" sx={{ opacity: 0.7, fontStyle: 'italic', display: 'block', mb: 1 }}>
+              Predicting Fires Before They Spread
+            </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8, lineHeight: 1.6 }}>
               Real-time forest fire risk assessment and prediction system powered by AI and weather data analysis.
             </Typography>

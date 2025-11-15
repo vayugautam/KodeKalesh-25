@@ -61,6 +61,19 @@ function Navbar() {
           >
             FireGuard AI
           </Typography>
+          <Typography 
+            variant="caption" 
+            component="div" 
+            sx={{ 
+              fontWeight: 400,
+              fontSize: '0.7rem',
+              opacity: 0.85,
+              display: { xs: 'none', sm: 'block' },
+              fontStyle: 'italic'
+            }}
+          >
+            Predicting Fires Before They Spread
+          </Typography>
         </Box>
 
         {/* Navigation Links */}

@@ -44,13 +44,25 @@ function Sidebar({ onFetchPrediction, selectedRegion, setSelectedRegion, selecte
           variant="h4" 
           component="h1" 
           sx={{ 
-            mb: 5,
+            mb: 2,
             fontWeight: 700,
             fontSize: '2.5rem',
             textAlign: 'center'
           }}
         >
           FireGuard AI
+        </Typography>
+        <Typography 
+          variant="subtitle2" 
+          sx={{ 
+            mb: 4,
+            textAlign: 'center',
+            fontStyle: 'italic',
+            color: 'text.secondary',
+            fontSize: '0.9rem'
+          }}
+        >
+          Predicting Fires Before They Spread
         </Typography>
 
         {/* Region Dropdown */}
