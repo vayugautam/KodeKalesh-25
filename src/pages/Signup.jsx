@@ -136,10 +136,13 @@ const Signup = () => {
               }}
             />
             <Typography variant="h4" fontWeight={700} color="error.main" gutterBottom>
-              Create Account
+              FireGuard AI
+            </Typography>
+            <Typography variant="body1" color="text.secondary" fontWeight={500} sx={{ mb: 0.5 }}>
+              Predicting Fires Before They Spread
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Join the forest fire prediction system
+              Create your account to get started
             </Typography>
           </Box>
 

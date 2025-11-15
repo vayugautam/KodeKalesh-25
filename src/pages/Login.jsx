@@ -104,7 +104,10 @@ const Login = () => {
               }}
             />
             <Typography variant="h4" fontWeight={700} color="primary.main" gutterBottom>
-              Forest Fire Prediction
+              FireGuard AI
+            </Typography>
+            <Typography variant="body1" color="text.secondary" fontWeight={500} sx={{ mb: 0.5 }}>
+              Predicting Fires Before They Spread
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Sign in to access the prediction system
