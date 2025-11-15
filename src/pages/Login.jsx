@@ -164,6 +164,9 @@ const Login = () => {
                       borderWidth: '2px',
                     },
                   },
+                  '& input:focus': {
+                    outline: 'none',
+                  },
                 }}
               />
 
@@ -215,6 +218,9 @@ const Login = () => {
                       borderColor: '#667eea',
                       borderWidth: '2px',
                     },
+                  },
+                  '& input:focus': {
+                    outline: 'none',
                   },
                 }}
               />

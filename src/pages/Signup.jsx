@@ -195,6 +195,9 @@ const Signup = () => {
                       borderWidth: '2px',
                     },
                   },
+                  '& input:focus': {
+                    outline: 'none',
+                  },
                 }}
               />
 
@@ -236,6 +239,9 @@ const Signup = () => {
                       borderColor: '#f5576c',
                       borderWidth: '2px',
                     },
+                  },
+                  '& input:focus': {
+                    outline: 'none',
                   },
                 }}
               />
@@ -279,6 +285,9 @@ const Signup = () => {
                       borderWidth: '2px',
                     },
                   },
+                  '& input:focus': {
+                    outline: 'none',
+                  },
                 }}
               />
 
@@ -319,6 +328,9 @@ const Signup = () => {
                       borderColor: '#f5576c',
                       borderWidth: '2px',
                     },
+                  },
+                  '& input:focus': {
+                    outline: 'none',
                   },
                 }}
               />
