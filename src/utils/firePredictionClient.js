@@ -6,7 +6,7 @@
 
 const API_BASE_URL = 'https://forestfiremlmodel.onrender.com'
 const PREDICT_ENDPOINT = '/predict'
-const REQUEST_TIMEOUT = 30000 // 30 seconds
+const REQUEST_TIMEOUT = 60000 // 60 seconds (increased for cold starts)
 
 /**
  * Call the fire prediction API

@@ -24,7 +24,7 @@ import { convertLatLonToXY, formatGridCoordinates, getGridCellBounds, GRID_CONFI
 import { useLocationWeather } from '../hooks/useLocationWeather'
 import { getWeatherDescription, calculateFireRisk } from '../utils/openMeteoApi'
 import { preparePayload, formatPayload } from '../utils/payloadUtils'
-import { callFirePredictionAPI } from '../utils/firePredictionClient'
+import { callWithRetry } from '../utils/firePredictionClient'
 import { getGridCellsInBounds, batchPredictCells, animatePredictions, calculatePredictionStats } from '../utils/batchPrediction'
 import DrawControl from './DrawControl'
 import 'leaflet-draw/dist/leaflet.draw.css'
@@ -989,7 +989,7 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
       setPredictionResult(null)
 
       try {
-        const response = await callFirePredictionAPI(apiPayload)
+        const response = await callWithRetry(apiPayload, 2) // Retry once on timeout
         console.log('✅ Step 4 Complete: API Response:', response)
         
         // Check if API call was successful
@@ -1011,15 +1011,22 @@ function MapView({ selectedLocation, locations, riskZones, onLocationSelect, tim
         } else {
           // API returned an error
           const errorMsg = response.error?.message || 'Unknown error'
+          const errorType = response.error?.type || 'UNKNOWN'
           console.error('❌ API Error:', response.error)
-          showError('Prediction failed: ' + errorMsg)
+          
+          // Show more specific error message
+          if (errorType === 'TIMEOUT_ERROR') {
+            showError('Prediction timeout - API may be cold starting. Please try again in a moment.')
+          } else {
+            showError('Prediction failed: ' + errorMsg)
+          }
           
           // Set fallback prediction with grey color
           setPredictionResult({
             score: null,
             bucket: 'error',
             color: '#9e9e9e',
-            features_used: ['API Error: ' + errorMsg]
+            features_used: [`${errorType}: ${errorMsg}`]
           })
           setLastUpdated(Date.now())
         }
