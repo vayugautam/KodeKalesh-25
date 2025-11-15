@@ -61,13 +61,13 @@ const Login = () => {
 
     // Simulate API call
     setTimeout(() => {
-      // For demo: accept any email/password
-      if (formData.email && formData.password.length >= 6) {
+      // Check for exact credentials
+      if (formData.email === 'demo@gmail.com' && formData.password === 'demo123') {
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('userEmail', formData.email)
         navigate('/map')
       } else {
-        setError('Invalid credentials. Password must be at least 6 characters.')
+        setError('Invalid credentials. Please use the demo credentials below.')
       }
       setLoading(false)
     }, 1000)
@@ -244,6 +244,27 @@ const Login = () => {
               >
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              {/* Demo Credentials */}
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: 'success.50',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'success.200'
+                }}
+              >
+                <Typography variant="caption" color="success.main" display="block" fontWeight={600} sx={{ mb: 0.5 }}>
+                  Demo Credentials
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Email: <strong>demo@gmail.com</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Password: <strong>demo123</strong>
+                </Typography>
+              </Box>
             </Stack>
           </form>
 
@@ -267,25 +288,6 @@ const Login = () => {
               >
                 Sign Up
               </Link>
-            </Typography>
-          </Box>
-
-          {/* Demo Info */}
-          <Box
-            sx={{
-              mt: 3,
-              p: 2,
-              bgcolor: 'info.50',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'info.200'
-            }}
-          >
-            <Typography variant="caption" color="info.main" display="block" fontWeight={600}>
-              Demo Mode
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Use any email and password (min 6 characters) to sign in
             </Typography>
           </Box>
         </Paper>

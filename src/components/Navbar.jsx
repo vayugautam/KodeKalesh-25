@@ -170,7 +170,7 @@ function Navbar() {
                   display: { xs: 'none', sm: 'flex' }
                 }}
               >
-                Login
+                LogOut
               </Button>
               <Button
                 component={Link}
