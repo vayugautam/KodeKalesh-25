@@ -6,6 +6,7 @@ import { SnackbarProvider } from 'notistack'
 import theme from './theme'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ProtectedRoute from './components/ProtectedRoute'
 import MapPage from './pages/MapPage'
 import Home from './pages/Home'
 import Alerts from './pages/Alerts'
@@ -93,13 +94,13 @@ function App() {
             tabIndex={-1}
           >
             <Routes>
-              <Route path="/" element={<MapPage searchInputRef={searchInputRef} />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/map" element={<MapPage searchInputRef={searchInputRef} />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/reports" element={<Reports />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/map" element={<ProtectedRoute><MapPage searchInputRef={searchInputRef} /></ProtectedRoute>} />
+              <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             </Routes>
           </main>
 

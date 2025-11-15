@@ -19,6 +19,8 @@ import {
   Alert,
   Collapse,
   IconButton,
+  Card,
+  CardContent,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -288,16 +290,16 @@ function Alerts() {
             {!!groupedAlerts.length && (
               <Box sx={{ flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'auto', maxHeight: 480 }}>
                 {groupedAlerts.map((item, index) => {
-                  const alert = item.isGroup ? item.alert : item;
-                  const isExpanded = item.isGroup && expandedGroups.has(item.groupId);
+                  const alert = item.isGroup ? item.main : item.main;
+                  const isExpanded = item.isGroup && expandedGroups.has(item.id);
                   const palette = severityPalette[alert.severity] || RISK_COLORS.medium;
 
                   return (
                     <Box key={alert.id} sx={{ px: 1, py: 0.5 }}>
                       <Card variant="outlined" sx={{
-                        bgcolor: alert.severity === 'CRITICAL' ? 'error.50' :
-                                 alert.severity === 'HIGH' ? 'warning.50' :
-                                 alert.severity === 'MEDIUM' ? 'info.50' : 'background.paper',
+                        bgcolor: alert.severity === 'critical' ? 'error.lighter' :
+                                 alert.severity === 'high' ? 'warning.lighter' :
+                                 alert.severity === 'medium' ? 'info.lighter' : 'background.paper',
                         borderLeft: 4,
                         borderLeftColor: palette.main
                       }}>
@@ -307,7 +309,7 @@ function Alerts() {
                               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                                 <Chip
                                   size="small"
-                                  sx={{ backgroundColor: palette.main, color: '#fff', fontWeight: 600 }}
+                                  sx={{ backgroundColor: palette.main, color: '#fff', fontWeight: 600, textTransform: 'uppercase' }}
                                   icon={<WarningAmberIcon sx={{ color: 'inherit', fontSize: 14 }} />}
                                   label={alert.severity}
                                 />
@@ -319,10 +321,10 @@ function Alerts() {
                                 </Typography>
                                 {item.isGroup && (
                                   <Chip
-                                    label={`+${item.similarAlerts.length}`}
+                                    label={`+${item.collapsed.length}`}
                                     size="small"
                                     variant="outlined"
-                                    onClick={() => toggleGroup(item.groupId)}
+                                    onClick={() => toggleGroup(item.id)}
                                     clickable
                                   />
                                 )}
@@ -332,7 +334,7 @@ function Alerts() {
                               </Typography>
                             </Box>
                             {item.isGroup && (
-                              <IconButton size="small" onClick={() => toggleGroup(item.groupId)}>
+                              <IconButton size="small" onClick={() => toggleGroup(item.id)}>
                                 {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                               </IconButton>
                             )}
@@ -341,7 +343,7 @@ function Alerts() {
                           {item.isGroup && (
                             <Collapse in={isExpanded}>
                               <Box sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'divider' }}>
-                                {item.similarAlerts.map((similarAlert) => {
+                                {item.collapsed.map((similarAlert) => {
                                   const simPalette = severityPalette[similarAlert.severity] || RISK_COLORS.medium;
                                   return (
                                     <Card key={similarAlert.id} variant="outlined" sx={{ mb: 1, bgcolor: 'background.paper' }}>

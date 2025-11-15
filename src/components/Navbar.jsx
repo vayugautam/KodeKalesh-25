@@ -154,6 +154,7 @@ function Navbar() {
                   },
                   px: 2,
                   borderRadius: 1,
+                  display: { xs: 'none', sm: 'flex' }
                 }}
               >
                 Login
@@ -170,6 +171,7 @@ function Navbar() {
                   },
                   px: 2,
                   borderRadius: 1,
+                  display: { xs: 'none', sm: 'flex' }
                 }}
               >
                 Sign Up
