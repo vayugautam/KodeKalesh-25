@@ -8,7 +8,6 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
 import ScrollToTop from './components/ScrollToTop'
-import ScrollProgress from './components/ScrollProgress'
 import WelcomeTour from './components/WelcomeTour'
 import NotificationCenter from './components/NotificationCenter'
 import SafetyTipsPanel from './components/SafetyTipsPanel'
@@ -78,7 +77,6 @@ function RouterContent() {
         {/* Fixed Header */}
         <header className="app-header" role="banner" aria-label="Main navigation">
           <Navbar />
-          <ScrollProgress />
         </header>
 
         {/* Main Content Area */}
