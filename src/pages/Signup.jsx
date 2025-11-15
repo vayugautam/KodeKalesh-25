@@ -170,15 +170,27 @@ const Signup = () => {
                 autoFocus
                 sx={{
                   '& input:-webkit-autofill': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
                     WebkitTextFillColor: '#000',
                     caretColor: '#000',
                   },
                   '& input:-webkit-autofill:hover': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
                   },
                   '& input:-webkit-autofill:focus': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#f5576c',
+                      borderWidth: '2px',
+                    },
                   },
                 }}
               />
@@ -200,15 +212,27 @@ const Signup = () => {
                 autoComplete="email"
                 sx={{
                   '& input:-webkit-autofill': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
                     WebkitTextFillColor: '#000',
                     caretColor: '#000',
                   },
                   '& input:-webkit-autofill:hover': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
                   },
                   '& input:-webkit-autofill:focus': {
-                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitBoxShadow: '0 0 0 100px #fff inset !important',
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#f5576c',
+                      borderWidth: '2px',
+                    },
                   },
                 }}
               />
@@ -239,6 +263,20 @@ const Signup = () => {
                 }}
                 autoComplete="new-password"
                 helperText="Minimum 6 characters"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#f5576c',
+                      borderWidth: '2px',
+                    },
+                  },
+                }}
               />
 
               <TextField
@@ -266,6 +304,20 @@ const Signup = () => {
                   )
                 }}
                 autoComplete="new-password"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#f5576c',
+                      borderWidth: '2px',
+                    },
+                  },
+                }}
               />
 
               <FormControlLabel
