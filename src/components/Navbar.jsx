@@ -59,7 +59,7 @@ function Navbar() {
               display: { xs: 'none', sm: 'block' }
             }}
           >
-            Forest Fire Prediction
+            FireGuard AI
           </Typography>
         </Box>
 

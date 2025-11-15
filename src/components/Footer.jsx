@@ -23,7 +23,7 @@ function Footer() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <LocalFireDepartmentIcon sx={{ fontSize: 28, color: '#ff5722' }} />
               <Typography variant="h6" fontWeight="bold">
-                Forest Fire Prediction
+                FireGuard AI
               </Typography>
             </Box>
             <Typography variant="body2" sx={{ opacity: 0.8, lineHeight: 1.6 }}>
@@ -99,7 +99,7 @@ function Footer() {
         {/* Copyright */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="body2" sx={{ opacity: 0.6 }}>
-            © 2025 Forest Fire Prediction System. All rights reserved.
+            © 2025 FireGuard AI. All rights reserved.
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.6 }}>
             Powered by Open-Meteo Weather API

@@ -153,7 +153,7 @@ export const generatePDFReport = async (mapElement, data = {}) => {
     pdf.setTextColor(255, 255, 255)
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'normal')
-    pdf.text('Forest Fire Prediction System - Powered by Open-Meteo Weather API', pageWidth / 2, footerY, { align: 'center' })
+    pdf.text('FireGuard AI - Predicting Fires Before They Spread - Powered by Open-Meteo Weather API', pageWidth / 2, footerY, { align: 'center' })
     pdf.text(`© 2025 - Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, footerY + 4, { align: 'center' })
 
     // Save PDF

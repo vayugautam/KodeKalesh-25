@@ -24,7 +24,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 const tourSteps = [
   {
-    label: 'Welcome to Forest Fire Prediction System',
+    label: 'Welcome to FireGuard AI',
     icon: <LocalFireDepartmentIcon color="error" />,
     description: 'An AI-powered platform for real-time forest fire risk assessment and prediction across India.',
     features: [

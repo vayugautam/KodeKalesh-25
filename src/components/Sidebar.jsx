@@ -50,7 +50,7 @@ function Sidebar({ onFetchPrediction, selectedRegion, setSelectedRegion, selecte
             textAlign: 'center'
           }}
         >
-          Forest Fire Prediction
+          FireGuard AI
         </Typography>
 
         {/* Region Dropdown */}
