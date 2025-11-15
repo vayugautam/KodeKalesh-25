@@ -137,6 +137,19 @@ const Login = () => {
                 }}
                 autoComplete="email"
                 autoFocus
+                sx={{
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitTextFillColor: '#000',
+                    caretColor: '#000',
+                  },
+                  '& input:-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                  '& input:-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                }}
               />
 
               <TextField
@@ -164,6 +177,19 @@ const Login = () => {
                   )
                 }}
                 autoComplete="current-password"
+                sx={{
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitTextFillColor: '#000',
+                    caretColor: '#000',
+                  },
+                  '& input:-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                  '& input:-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                }}
               />
 
               <Button

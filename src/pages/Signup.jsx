@@ -168,6 +168,19 @@ const Signup = () => {
                 }}
                 autoComplete="name"
                 autoFocus
+                sx={{
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitTextFillColor: '#000',
+                    caretColor: '#000',
+                  },
+                  '& input:-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                  '& input:-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                }}
               />
 
               <TextField
@@ -185,6 +198,19 @@ const Signup = () => {
                   )
                 }}
                 autoComplete="email"
+                sx={{
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                    WebkitTextFillColor: '#000',
+                    caretColor: '#000',
+                  },
+                  '& input:-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                  '& input:-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #fff inset',
+                  },
+                }}
               />
 
               <TextField
